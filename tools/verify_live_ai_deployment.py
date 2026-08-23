@@ -93,6 +93,8 @@ class VercelCurlClient:
             "--location",
             "--output",
             str(output_path),
+            "--write-out",
+            "\n__REALTAGS_HTTP_STATUS__:%{http_code}",
         ]
         command = (
             [
@@ -136,6 +138,12 @@ class VercelCurlClient:
             raise SanitizedProbeFailure(f"{step} exceeded its bounded timeout.") from error
         if completed.returncode != 0:
             raise SanitizedProbeFailure(f"{step} failed with exit code {completed.returncode}.")
+        status_match = re.search(r"__REALTAGS_HTTP_STATUS__:(\d{3})", completed.stdout)
+        if status_match is None:
+            raise SanitizedProbeFailure(f"{step} did not report an HTTP status.")
+        status_code = int(status_match.group(1))
+        if not 200 <= status_code < 300:
+            raise SanitizedProbeFailure(f"{step} returned HTTP {status_code}.")
         return _read_bounded(output_path)
 
 

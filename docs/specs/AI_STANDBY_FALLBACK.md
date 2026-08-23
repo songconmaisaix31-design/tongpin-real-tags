@@ -1,6 +1,6 @@
 # AI Standby Fallback Specification
 
-Status: **Implemented and verified; Vercel AI Gateway activation in progress**
+Status: **Implemented and locally verified; live activation blocked by upstream permission**
 
 ## Product outcome
 
@@ -153,6 +153,7 @@ excluded from runtime configuration and must be treated as exposed.
 node --test tests/match_flow.test.mjs tests/registration_draft.test.mjs
 .\harness.cmd
 .\.venv\Scripts\python.exe -m compileall -q app tests
+.\.venv\Scripts\python.exe tools\verify_live_ai_deployment.py https://<isolated-qa-domain> --public
 git diff --check
 ```
 
@@ -161,3 +162,26 @@ message composer, provider-failure copy, desktop layout, and 390x844 mobile
 layout. Live activation additionally requires a read-only configuration check,
 a single controlled model turn with generated test text, and evidence that no
 secret or profile field appears in the database or response.
+
+## Local verification result
+
+- Python: 110 tests passed.
+- JavaScript: 11 tests passed.
+- Harness: 6/6 gates passed with the project virtual environment on `PATH`.
+- Python compilation, probe-script compilation, and `git diff --check` passed.
+
+## Live activation result (2026-08-23)
+
+- The sanitized probe reached an isolated Vercel deployment, registered a
+  generated QA identity, entered the disclosed AI standby flow, and preserved
+  the user's controlled message without exposing its content in evidence.
+- Request-scoped Vercel OIDC reached the documented AI Gateway endpoint, but
+  the Gateway returned HTTP 403. The bounded application diagnostic was
+  `permission_denied`; no upstream response body or credential was logged.
+- Read-only checks confirmed that `alibaba/qwen3.5-flash` remained listed with
+  an available provider endpoint and that the team had no AI Gateway routing
+  rules. Those checks do not prove inference permission or a successful reply.
+- Production activation is `HOLD`. This AI runtime candidate was not promoted;
+  the concurrent avatar deployment `dpl_GuM7Q9sUNgvewZbr3EzfZqusuqc2` remained
+  current at `app.davidwang.space`. Completion requires the account owner to
+  resolve the AI Gateway permission boundary and rerun one controlled model turn.

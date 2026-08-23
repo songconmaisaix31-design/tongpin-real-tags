@@ -1,6 +1,6 @@
 # Beijing POIs and AI Match Reliability Specification
 
-Status: **Implemented and locally verified; deployment verification pending**
+Status: **Implemented and locally verified; live AI activation on HOLD**
 
 Date: 2026-08-23
 
@@ -99,9 +99,22 @@ post-deploy contamination check that does not read or print credentials.
 
 ## Local verification result
 
-- Python: 109 tests passed.
+- Python: 110 tests passed.
 - JavaScript: 11 tests passed.
 - Harness: 6/6 gates passed.
 - Visual: ten route captures passed at 1100x900 and 390x844 with zero page
   horizontal overflow and zero broken images. A full mobile event-list check
   confirmed eight rows, no title or venue overflow, and no title/venue overlap.
+
+## Live activation result
+
+- The isolated runtime probe verified registration, the empty-human-pool AI
+  standby transition, truthful AI disclosure, user-message persistence, and
+  safe provider-failure copy.
+- Vercel AI Gateway rejected the request-scoped OIDC call with HTTP 403,
+  recorded only as the bounded code `permission_denied`. A real model reply is
+  therefore not verified.
+- This AI runtime candidate was not promoted. The concurrent avatar deployment
+  remained current at the production domain. AI activation stays on hold until
+  the account-level Gateway permission boundary is resolved and the controlled
+  reply probe passes.

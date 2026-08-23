@@ -97,6 +97,10 @@ class AiFallbackTransportTests(unittest.TestCase):
                 "authentication_failed",
             ),
             (
+                CapturingOpener(HTTPError("https://provider.example.test", 403, "forbidden", {}, None)),
+                "permission_denied",
+            ),
+            (
                 CapturingOpener(HTTPError("https://provider.example.test", 429, "limited", {}, None)),
                 "rate_limited",
             ),

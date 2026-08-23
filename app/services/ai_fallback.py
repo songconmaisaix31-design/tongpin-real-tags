@@ -186,8 +186,10 @@ def request_chat_completion(
     except HTTPError as error:
         if 300 <= error.code < 400:
             code = "redirect_rejected"
-        elif error.code in {401, 403}:
+        elif error.code == 401:
             code = "authentication_failed"
+        elif error.code == 403:
+            code = "permission_denied"
         elif error.code == 429:
             code = "rate_limited"
         elif 400 <= error.code < 500:
