@@ -11,7 +11,7 @@ import subprocess
 import tempfile
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import urljoin, urlsplit
 
 
 MAX_RESPONSE_BYTES = 1 * 1024 * 1024
@@ -39,6 +39,15 @@ def _vercel_executable() -> str:
     raise SanitizedProbeFailure("Vercel CLI is not installed or not on PATH.")
 
 
+def _curl_executable() -> str:
+    names = ("curl.exe", "curl") if os.name == "nt" else ("curl",)
+    for name in names:
+        executable = shutil.which(name)
+        if executable:
+            return executable
+    raise SanitizedProbeFailure("curl is not installed or not on PATH.")
+
+
 def _read_bounded(path: Path) -> str:
     if not path.is_file():
         raise SanitizedProbeFailure("A probe response file was not created.")
@@ -52,7 +61,8 @@ class VercelCurlClient:
         self.deployment = deployment
         self.directory = directory
         self.timeout_seconds = timeout_seconds
-        self.executable = _vercel_executable()
+        self.vercel_executable = _vercel_executable()
+        self.curl_executable = _curl_executable()
         self.cookie_path = directory / "session.cookies"
 
     def request(
@@ -65,14 +75,7 @@ class VercelCurlClient:
         use_session: bool = False,
     ) -> str:
         output_path = self.directory / output_name
-        command = [
-            self.executable,
-            "curl",
-            path,
-            "--deployment",
-            self.deployment,
-            "--yes",
-            "--",
+        curl_arguments = [
             "--silent",
             "--show-error",
             "--connect-timeout",
@@ -84,7 +87,26 @@ class VercelCurlClient:
             str(output_path),
         ]
         if use_session:
-            command.extend(("--cookie", str(self.cookie_path)))
+            command = [
+                self.curl_executable,
+                urljoin(self.deployment + "/", path.lstrip("/")),
+                *curl_arguments,
+                "--cookie",
+                str(self.cookie_path),
+            ]
+        else:
+            command = [
+                self.vercel_executable,
+                "curl",
+                path,
+                "--deployment",
+                self.deployment,
+                "--yes",
+                "--",
+                *curl_arguments,
+                "--header",
+                "x-vercel-set-bypass-cookie: true",
+            ]
         command.extend(("--cookie-jar", str(self.cookie_path)))
         if form is not None:
             if not form:
@@ -101,7 +123,7 @@ class VercelCurlClient:
                 text=True,
                 encoding="utf-8",
                 errors="replace",
-                timeout=self.timeout_seconds + 20,
+                timeout=self.timeout_seconds + (30 if use_session is False else 10),
             )
         except subprocess.TimeoutExpired as error:
             raise SanitizedProbeFailure(f"{step} exceeded its bounded timeout.") from error
