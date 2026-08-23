@@ -57,10 +57,18 @@ def _read_bounded(path: Path) -> str:
 
 
 class VercelCurlClient:
-    def __init__(self, deployment: str, directory: Path, timeout_seconds: float) -> None:
+    def __init__(
+        self,
+        deployment: str,
+        directory: Path,
+        timeout_seconds: float,
+        *,
+        public: bool,
+    ) -> None:
         self.deployment = deployment
         self.directory = directory
         self.timeout_seconds = timeout_seconds
+        self.public = public
         self.vercel_executable = _vercel_executable()
         self.curl_executable = _curl_executable()
         self.cookie_path = directory / "session.cookies"
@@ -86,16 +94,14 @@ class VercelCurlClient:
             "--output",
             str(output_path),
         ]
-        if use_session:
-            command = [
+        command = (
+            [
                 self.curl_executable,
                 urljoin(self.deployment + "/", path.lstrip("/")),
                 *curl_arguments,
-                "--cookie",
-                str(self.cookie_path),
             ]
-        else:
-            command = [
+            if self.public
+            else [
                 self.vercel_executable,
                 "curl",
                 path,
@@ -104,9 +110,10 @@ class VercelCurlClient:
                 "--yes",
                 "--",
                 *curl_arguments,
-                "--header",
-                "x-vercel-set-bypass-cookie: true",
             ]
+        )
+        if use_session:
+            command.extend(("--cookie", str(self.cookie_path)))
         command.extend(("--cookie-jar", str(self.cookie_path)))
         if form is not None:
             if not form:
@@ -123,7 +130,7 @@ class VercelCurlClient:
                 text=True,
                 encoding="utf-8",
                 errors="replace",
-                timeout=self.timeout_seconds + (30 if use_session is False else 10),
+                timeout=self.timeout_seconds + (10 if self.public else 30),
             )
         except subprocess.TimeoutExpired as error:
             raise SanitizedProbeFailure(f"{step} exceeded its bounded timeout.") from error
@@ -164,11 +171,16 @@ def _registration_form(run_id: str) -> tuple[tuple[str, str], ...]:
     )
 
 
-def run_probe(deployment: str, timeout_seconds: float) -> ProbeResult:
+def run_probe(deployment: str, timeout_seconds: float, *, public: bool = False) -> ProbeResult:
     run_id = secrets.token_hex(6)
     test_message = f"请用一句简短中文确认本次 AI 候场验证，并明确你是 AI。验证编号 {run_id}。"
     with tempfile.TemporaryDirectory(prefix="realtags-live-ai-") as directory:
-        client = VercelCurlClient(deployment, Path(directory), timeout_seconds)
+        client = VercelCurlClient(
+            deployment,
+            Path(directory),
+            timeout_seconds,
+            public=public,
+        )
         registration = client.request(
             "registration",
             "/register",
@@ -196,7 +208,18 @@ def run_probe(deployment: str, timeout_seconds: float) -> ProbeResult:
         )
         action = re.search(r'action="(?P<path>/conversations/[^\"]+/messages)"', standby)
         if action is None:
-            raise SanitizedProbeFailure("The AI message action was not exposed.")
+            diagnostics = {
+                "register_auto_login": register_auto_login,
+                "deployment_protection_page": "Vercel Authentication" in standby
+                or "vercel.com/login" in standby,
+                "application_login_page": "邮箱登录" in standby,
+                "ai_standby_ready_page": "AI STANDBY · NOT A REAL PERSON" in standby,
+                "ai_unavailable_empty_page": "NO ELIGIBLE MATCHES" in standby,
+            }
+            raise SanitizedProbeFailure(
+                "The AI message action was not exposed: "
+                + json.dumps(diagnostics, sort_keys=True)
+            )
 
         reply = client.request(
             "controlled AI reply",
@@ -267,6 +290,11 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("deployment", type=_validate_deployment)
     parser.add_argument("--timeout", type=float, default=35.0)
+    parser.add_argument(
+        "--public",
+        action="store_true",
+        help="use direct HTTPS for a current public deployment",
+    )
     args = parser.parse_args()
     if not 15 <= args.timeout <= 45:
         parser.error("--timeout must be between 15 and 45 seconds")
@@ -276,7 +304,7 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     try:
-        result = run_probe(args.deployment, args.timeout)
+        result = run_probe(args.deployment, args.timeout, public=args.public)
     except SanitizedProbeFailure as error:
         raise SystemExit(f"LIVE_AI_PROBE_FAIL: {error}") from None
     print(json.dumps(asdict(result), sort_keys=True), flush=True)
