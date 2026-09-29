@@ -7,7 +7,7 @@
       <article class="inbox-row">
         <span class="inbox-index">{{ '%02d'|format(loop.index) }}</span>
         <div class="inbox-copy"><p class="eyebrow">{{ conversation.subtitle }}</p><h2>{{ conversation.display_name }}</h2>{% if conversation.last_message %}<p class="last-message">{{ conversation.last_message.content }}</p>{% else %}<p class="last-message is-empty">还没有消息，从一句轻松的问候开始。</p>{% endif %}</div>
-        <a class="button secondary" href="{{ url_for('chat.detail', conversation_id=conversation.id) }}" aria-label="进入与 {{ conversation.display_name }} 的会话">进入会话</a>
+        <a class="button secondary" href="{{ url_for('chat.detail', conversation_id=conversation.id) }}" aria-label="进入与 {{ conversation.display_name }} 的会话">继续聊天与解锁</a>
       </article>
     {% else %}
       <div class="empty-state"><span>INBOX IS QUIET</span><h2>还没有会话</h2><p>先从匿名匹配中找到一位值得聊聊的陌生人。</p><a class="button" href="{{ url_for('matches.index') }}">查看匿名匹配</a></div>

@@ -1,0 +1,366 @@
+{
+  "capturedAt": "2026-08-22T20:00:32.477Z",
+  "baseUrl": "http://127.0.0.1:5127/",
+  "evidence": [
+    {
+      "name": "home-desktop-1100x900.png",
+      "viewport": {
+        "width": 1100,
+        "height": 900
+      },
+      "url": "http://127.0.0.1:5127/",
+      "title": "首页 · 真实标签",
+      "innerWidth": 1100,
+      "innerHeight": 900,
+      "scrollY": 0,
+      "clientWidth": 1085,
+      "scrollWidth": 1085,
+      "horizontalOverflow": 0,
+      "brokenImages": 0,
+      "pendingImages": 0,
+      "primaryActions": [
+        {
+          "text": "进入预置演示账号私密标签 → 匿名匹配 → 破冰解锁 → 餐厅饭局",
+          "left": 133,
+          "right": 559,
+          "top": 646,
+          "bottom": 716,
+          "width": 426,
+          "height": 70,
+          "horizontallyClipped": false,
+          "coveredByDock": false
+        }
+      ],
+      "focus": {
+        "outlineStyle": "solid",
+        "outlineWidth": "3px",
+        "outlineOffset": "3px"
+      },
+      "mobileDock": false
+    },
+    {
+      "name": "home-mobile-390x844.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "http://127.0.0.1:5127/",
+      "title": "首页 · 真实标签",
+      "innerWidth": 390,
+      "innerHeight": 844,
+      "scrollY": 0,
+      "clientWidth": 390,
+      "scrollWidth": 390,
+      "horizontalOverflow": 0,
+      "brokenImages": 0,
+      "pendingImages": 0,
+      "primaryActions": [
+        {
+          "text": "进入预置演示账号私密标签 → 匿名匹配 → 破冰解锁 → 餐厅饭局",
+          "left": 45,
+          "right": 345,
+          "top": 519,
+          "bottom": 589,
+          "width": 301,
+          "height": 70,
+          "horizontallyClipped": false,
+          "coveredByDock": false
+        }
+      ],
+      "focus": {
+        "outlineStyle": "solid",
+        "outlineWidth": "3px",
+        "outlineOffset": "3px"
+      },
+      "mobileDock": false
+    },
+    {
+      "name": "profile-mobile-390x844.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "http://127.0.0.1:5127/profile",
+      "title": "我的标签 · 真实标签",
+      "innerWidth": 390,
+      "innerHeight": 844,
+      "scrollY": 0,
+      "clientWidth": 390,
+      "scrollWidth": 390,
+      "horizontalOverflow": 0,
+      "brokenImages": 0,
+      "pendingImages": 0,
+      "primaryActions": [
+        {
+          "text": "下一步：匿名匹配",
+          "left": 199,
+          "right": 352,
+          "top": 668,
+          "bottom": 739,
+          "width": 152,
+          "height": 71,
+          "horizontallyClipped": false,
+          "coveredByDock": false
+        }
+      ],
+      "focus": {
+        "outlineStyle": "solid",
+        "outlineWidth": "3px",
+        "outlineOffset": "3px"
+      },
+      "mobileDock": true
+    },
+    {
+      "name": "match-ready-mobile-390x844.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "http://127.0.0.1:5127/matches",
+      "title": "开始匿名匹配 · 真实标签",
+      "innerWidth": 390,
+      "innerHeight": 844,
+      "scrollY": 0,
+      "clientWidth": 390,
+      "scrollWidth": 390,
+      "horizontalOverflow": 0,
+      "brokenImages": 0,
+      "pendingImages": 0,
+      "primaryActions": [
+        {
+          "text": "开始匿名匹配",
+          "left": 39,
+          "right": 351,
+          "top": 964,
+          "bottom": 1019,
+          "width": 312,
+          "height": 55,
+          "horizontallyClipped": false,
+          "coveredByDock": false
+        }
+      ],
+      "focus": {
+        "outlineStyle": "solid",
+        "outlineWidth": "3px",
+        "outlineOffset": "3px"
+      },
+      "mobileDock": true
+    },
+    {
+      "name": "match-searching-mobile-390x844.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "http://127.0.0.1:5127/matches/searching",
+      "title": "正在匿名匹配 · 真实标签",
+      "innerWidth": 390,
+      "innerHeight": 844,
+      "scrollY": 0,
+      "clientWidth": 390,
+      "scrollWidth": 390,
+      "horizontalOverflow": 0,
+      "brokenImages": 0,
+      "pendingImages": 0,
+      "primaryActions": [
+        {
+          "text": "跳过等待，直接查看结果",
+          "left": 16,
+          "right": 374,
+          "top": 1541,
+          "bottom": 1585,
+          "width": 358,
+          "height": 44,
+          "horizontallyClipped": false,
+          "coveredByDock": false
+        }
+      ],
+      "focus": {
+        "outlineStyle": "solid",
+        "outlineWidth": "3px",
+        "outlineOffset": "3px"
+      },
+      "mobileDock": true
+    },
+    {
+      "name": "match-result-mobile-390x844.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "http://127.0.0.1:5127/matches/demo_002",
+      "title": "匹配结果 · 真实标签",
+      "innerWidth": 390,
+      "innerHeight": 844,
+      "scrollY": 0,
+      "clientWidth": 390,
+      "scrollWidth": 390,
+      "horizontalOverflow": 0,
+      "brokenImages": 0,
+      "pendingImages": 0,
+      "primaryActions": [
+        {
+          "text": "开启匿名会话 · 进入 L0",
+          "left": 41,
+          "right": 349,
+          "top": 1092,
+          "bottom": 1147,
+          "width": 309,
+          "height": 55,
+          "horizontallyClipped": false,
+          "coveredByDock": false
+        }
+      ],
+      "focus": {
+        "outlineStyle": "solid",
+        "outlineWidth": "3px",
+        "outlineOffset": "3px"
+      },
+      "mobileDock": true
+    },
+    {
+      "name": "chat-l0-mobile-390x844.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "http://127.0.0.1:5127/conversations/direct_06c762ab66eafc4d6ae0",
+      "title": "会话 · 真实标签",
+      "innerWidth": 390,
+      "innerHeight": 844,
+      "scrollY": 0,
+      "clientWidth": 390,
+      "scrollWidth": 390,
+      "horizontalOverflow": 0,
+      "brokenImages": 0,
+      "pendingImages": 1,
+      "primaryActions": [
+        {
+          "text": "先用破冰工具",
+          "left": 25,
+          "right": 284,
+          "top": 396,
+          "bottom": 444,
+          "width": 259,
+          "height": 49,
+          "horizontallyClipped": false,
+          "coveredByDock": false
+        }
+      ],
+      "focus": {
+        "outlineStyle": "solid",
+        "outlineWidth": "3px",
+        "outlineOffset": "3px"
+      },
+      "mobileDock": true
+    },
+    {
+      "name": "chat-progress-desktop-1100x900.png",
+      "viewport": {
+        "width": 1100,
+        "height": 900
+      },
+      "url": "http://127.0.0.1:5127/conversations/direct_06c762ab66eafc4d6ae0",
+      "title": "会话 · 真实标签",
+      "innerWidth": 1100,
+      "innerHeight": 900,
+      "scrollY": 0,
+      "clientWidth": 1100,
+      "scrollWidth": 1100,
+      "horizontalOverflow": 0,
+      "brokenImages": 0,
+      "pendingImages": 0,
+      "primaryActions": [
+        {
+          "text": "先用破冰工具",
+          "left": 53,
+          "right": 178,
+          "top": 475,
+          "bottom": 524,
+          "width": 125,
+          "height": 49,
+          "horizontallyClipped": false,
+          "coveredByDock": false
+        }
+      ],
+      "focus": {
+        "outlineStyle": "solid",
+        "outlineWidth": "3px",
+        "outlineOffset": "3px"
+      },
+      "mobileDock": true
+    },
+    {
+      "name": "events-mobile-390x844.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "url": "http://127.0.0.1:5127/events",
+      "title": "饭局广场 · 真实标签",
+      "innerWidth": 390,
+      "innerHeight": 844,
+      "scrollY": 0,
+      "clientWidth": 390,
+      "scrollWidth": 390,
+      "horizontalOverflow": 0,
+      "brokenImages": 0,
+      "pendingImages": 0,
+      "primaryActions": [
+        {
+          "text": "发起主题饭局",
+          "left": 39,
+          "right": 351,
+          "top": 466,
+          "bottom": 521,
+          "width": 312,
+          "height": 55,
+          "horizontallyClipped": false,
+          "coveredByDock": false
+        }
+      ],
+      "focus": {
+        "outlineStyle": "solid",
+        "outlineWidth": "3px",
+        "outlineOffset": "3px"
+      },
+      "mobileDock": true
+    },
+    {
+      "name": "event-detail-desktop-1100x900.png",
+      "viewport": {
+        "width": 1100,
+        "height": 900
+      },
+      "url": "http://127.0.0.1:5127/events/event_001",
+      "title": "AI 从业者交流晚餐 · 真实标签",
+      "innerWidth": 1100,
+      "innerHeight": 900,
+      "scrollY": 0,
+      "clientWidth": 1100,
+      "scrollWidth": 1100,
+      "horizontalOverflow": 0,
+      "brokenImages": 0,
+      "pendingImages": 0,
+      "primaryActions": [
+        {
+          "text": "报名参加",
+          "left": 815,
+          "right": 1014,
+          "top": 431,
+          "bottom": 480,
+          "width": 199,
+          "height": 49,
+          "horizontallyClipped": false,
+          "coveredByDock": false
+        }
+      ],
+      "focus": {
+        "outlineStyle": "solid",
+        "outlineWidth": "3px",
+        "outlineOffset": "3px"
+      },
+      "mobileDock": true
+    }
+  ]
+}

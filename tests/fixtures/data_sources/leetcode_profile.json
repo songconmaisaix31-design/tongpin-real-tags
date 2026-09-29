@@ -1,0 +1,20 @@
+{
+  "data": {
+    "matchedUser": {
+      "username": "leetcode",
+      "profile": {
+        "ranking": 4242,
+        "realName": "excluded profile field"
+      },
+      "submitStatsGlobal": {
+        "acSubmissionNum": [
+          {"difficulty": "All", "count": 300, "submissions": 720},
+          {"difficulty": "Easy", "count": 140, "submissions": 280},
+          {"difficulty": "Medium", "count": 120, "submissions": 320},
+          {"difficulty": "Hard", "count": 40, "submissions": 120}
+        ]
+      }
+    }
+  },
+  "excluded_marker": "SHOULD_NOT_PERSIST"
+}

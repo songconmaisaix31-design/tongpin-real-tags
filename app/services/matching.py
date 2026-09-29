@@ -7,7 +7,7 @@ from decimal import Decimal
 
 from ..constants import MATCH_WEIGHT_GROUPS
 from ..db import get_db
-from .users import get_user, profile_tags
+from .users import get_user, matching_tags
 
 
 def validate_weight_groups() -> None:
@@ -27,14 +27,42 @@ def _set_similarity(left: Iterable[str], right: Iterable[str]) -> float:
 
 
 def _tag_values(user_id: str) -> dict[str, dict]:
-    values = {}
-    for tag in profile_tags(user_id):
-        values[tag["tag_id"]] = tag["value"]
-    return values
+    return {tag["tag_id"]: tag["value"] for tag in matching_tags(user_id)}
 
 
 def _list_value(tags: dict[str, dict], key: str) -> list[str]:
-    return tags.get(key, {}).get("items", [])
+    items = tags.get(key, {}).get("items", [])
+    if not isinstance(items, list):
+        return []
+    return [item for item in items if isinstance(item, str)]
+
+
+def _list_value_aliases(tags: dict[str, dict], *keys: str) -> list[str]:
+    for key in keys:
+        if key in tags:
+            return _list_value(tags, key)
+    return []
+
+
+def _behavior_similarity(left_tags: dict[str, dict], right_tags: dict[str, dict]) -> float:
+    """Compare the normalized list signals shared by every datasource mode."""
+    signals = []
+    for keys in (
+        ("learning_languages", "lang_learning"),
+        ("sport_primary",),
+        ("coding_primary_languages",),
+    ):
+        left_present = any(key in left_tags for key in keys)
+        right_present = any(key in right_tags for key in keys)
+        if not left_present and not right_present:
+            continue
+        signals.append(
+            _set_similarity(
+                _list_value_aliases(left_tags, *keys),
+                _list_value_aliases(right_tags, *keys),
+            )
+        )
+    return sum(signals) / len(signals) if signals else 0.0
 
 
 def _hours(user: dict, tags: dict[str, dict]) -> list[int]:
@@ -57,7 +85,13 @@ def _active_time_similarity(left: dict, left_tags: dict, right: dict, right_tags
 
 
 def _has_external_tags(user_id: str) -> bool:
-    return bool(get_db().execute("SELECT 1 FROM tags WHERE user_id = ? AND verified = 1 LIMIT 1", (user_id,)).fetchone())
+    return bool(matching_tags(user_id))
+
+
+def smooth_display_score(raw_score: float) -> int:
+    """Clamp an internal score and apply the frozen 60-98 presentation transform."""
+    bounded = max(0.0, min(1.0, float(raw_score)))
+    return round(60 + bounded * 38)
 
 
 def is_hard_filter_match(viewer: dict, candidate: dict) -> bool:
@@ -72,10 +106,7 @@ def is_hard_filter_match(viewer: dict, candidate: dict) -> bool:
 
 def calculate_match(viewer: dict, candidate: dict) -> dict:
     viewer_tags, candidate_tags = _tag_values(viewer["id"]), _tag_values(candidate["id"])
-    behavior = (
-        _set_similarity(_list_value(viewer_tags, "lang_learning"), _list_value(candidate_tags, "lang_learning"))
-        + _set_similarity(_list_value(viewer_tags, "sport_primary"), _list_value(candidate_tags, "sport_primary"))
-    ) / 2
+    behavior = _behavior_similarity(viewer_tags, candidate_tags)
     similarities = {
         "purpose": _set_similarity(viewer["purposes"], candidate["purposes"]),
         "behavior": behavior,
@@ -89,7 +120,7 @@ def calculate_match(viewer: dict, candidate: dict) -> dict:
     raw = max(0.0, min(1.0, raw))
     return {
         "raw_score": raw,
-        "display_score": round(60 + raw * 38),
+        "display_score": smooth_display_score(raw),
         "common_point_count": max(1, round(sum(value > 0 for value in similarities.values()))),
     }
 
@@ -127,14 +158,22 @@ def event_match_score(user_id: str, required_tags: list[str]) -> dict:
         known.add("interest_ai")
     if "创业" in user["interests"]:
         known.add("identity_startup")
-    language_map = {"英语": "lang_learning_en", "日语": "lang_learning_ja"}
+    language_map = {
+        "en": "lang_learning_en",
+        "英语": "lang_learning_en",
+        "ja": "lang_learning_ja",
+        "日语": "lang_learning_ja",
+    }
     sport_map = {"跑步": "sport_running", "瑜伽": "sport_yoga"}
-    known.update(language_map.get(item) for item in _list_value(behavior_tags, "lang_learning"))
+    known.update(
+        language_map.get(item)
+        for item in _list_value_aliases(behavior_tags, "learning_languages", "lang_learning")
+    )
     known.update(sport_map.get(item) for item in _list_value(behavior_tags, "sport_primary"))
     known.discard(None)
     matches = known & set(required_tags)
     raw = len(matches) / len(required_tags) if required_tags else 0.0
-    return {"raw_score": raw, "display_score": round(60 + raw * 38), "common_tag_count": len(matches)}
+    return {"raw_score": raw, "display_score": smooth_display_score(raw), "common_tag_count": len(matches)}
 
 
 def event_required_tags(event_row) -> list[str]:

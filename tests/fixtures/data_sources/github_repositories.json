@@ -1,0 +1,26 @@
+[
+  {
+    "name": "excluded-repository-name-1",
+    "fork": false,
+    "language": "Python",
+    "pushed_at": "2026-08-22T11:00:00Z"
+  },
+  {
+    "name": "excluded-repository-name-2",
+    "fork": false,
+    "language": "TypeScript",
+    "pushed_at": "2026-08-21T09:30:00Z"
+  },
+  {
+    "name": "excluded-repository-name-3",
+    "fork": false,
+    "language": "Python",
+    "pushed_at": "2026-08-20T08:00:00+00:00"
+  },
+  {
+    "name": "excluded-fork-name",
+    "fork": true,
+    "language": "Go",
+    "pushed_at": null
+  }
+]

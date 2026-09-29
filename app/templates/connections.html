@@ -2,22 +2,107 @@
 {% block title %}数据连接{% endblock %}
 {% block content %}
   <section class="page-heading" aria-labelledby="connections-title">
-    <div><p class="eyebrow">STEP 02 / VERIFIED SIGNALS</p><h1 id="connections-title">连接真实行为数据</h1><p>你决定连接哪些数据源。当前演示使用 Mock OAuth，后端已保留真实授权、刷新令牌和错误码的接入边界。</p></div>
+    <div>
+      <p class="eyebrow">STEP 02 / PRIVATE SIGNALS</p>
+      <h1 id="connections-title">连接公开行为数据</h1>
+      <p>Public Live 只读取你提交的公开用户名；Fixture 只用于离线演示。两者不会混写，也不会在失败时自动切换。</p>
+    </div>
     <a class="text-link back-link" href="{{ url_for('auth.profile') }}">返回我的标签</a>
   </section>
-  <section class="source-grid" aria-label="可连接的数据源">
-    {% for source, label in {'duolingo':'多邻国 Duolingo', 'keep':'Keep'}|items %}
-      {% set connection = connections.get(source) %}
-      <article class="source-card source-{{ source }}">
-        <div class="source-card-top"><span class="source-code">{{ 'DUO' if source == 'duolingo' else 'KEEP' }}</span><span class="status-pill {{ 'status-success' if connection and connection.status == 'connected' else 'status-neutral' }}">{{ '已连接' if connection and connection.status == 'connected' else '未连接' }}</span></div>
-        <div><p class="eyebrow">{{ source }}</p><h2>{{ label }}</h2><p>{{ '将语言学习习惯转化为已认证标签。' if source == 'duolingo' else '将运动频率与偏好转化为已认证标签。' }}</p></div>
-        <dl class="source-meta"><div><dt>数据用途</dt><dd>仅用于服务端匹配</dd></div><div><dt>最近同步</dt><dd>{{ connection.refreshed_at if connection else '尚未同步' }}</dd></div></dl>
-        <form method="post" action="{{ url_for('auth.authorize_source', source=source) }}">
-          <input type="hidden" name="authorization_code" value="demo-authorized">
-          <button class="button button-block {{ 'secondary' if connection else '' }}" type="submit">{{ '重新同步数据' if connection else '授权并同步' }}</button>
-        </form>
+
+  <section class="source-grid" aria-label="数据源状态与连接操作">
+    {% for source in sources %}
+      {% set connection = connections.get(source.source_id) %}
+      {% if connection %}
+        {% set state_key = 'fixture_ready' if connection.last_state == 'ready' and connection.data_mode == 'fixture' else connection.last_state %}
+      {% elif source.data_mode == 'fixture' %}
+        {% set state_key = 'fixture_ready' if demo_mode else 'unavailable' %}
+      {% elif source.data_mode == 'unavailable' %}
+        {% set state_key = 'unavailable' %}
+      {% else %}
+        {% set state_key = none %}
+      {% endif %}
+      {% set state_pair = state_copy.get(state_key) if state_key else none %}
+      <article class="source-card source-{{ source.source_id }}" data-source="{{ source.source_id }}" data-mode="{{ source.data_mode }}">
+        <div class="source-card-top">
+          <span class="source-code">{{ source.code }}</span>
+          <span class="status-pill {{ 'status-success' if connection and connection.last_state == 'ready' else 'status-neutral' }}">
+            {% if state_pair %}{{ state_pair[0] }}{% else %}尚未同步{% endif %}
+          </span>
+        </div>
+
+        <div>
+          <p class="eyebrow">
+            {% if source.data_mode == 'public_live' %}PUBLIC LIVE{% elif source.data_mode == 'fixture' %}FIXTURE{% else %}UNAVAILABLE{% endif %}
+          </p>
+          <h2>{{ source.label }}</h2>
+          <p>{{ source.description }}</p>
+        </div>
+
+        <dl class="source-meta">
+          <div>
+            <dt>数据模式</dt>
+            <dd>{% if source.data_mode == 'public_live' %}Public Live · 公开读取{% elif source.data_mode == 'fixture' %}Fixture · 合成演示数据{% else %}Unavailable · 未启用{% endif %}</dd>
+          </div>
+          <div>
+            <dt>{% if connection and connection.data_mode == 'fixture' %}最近载入{% else %}最近成功{% endif %}</dt>
+            <dd>{{ connection.refreshed_at if connection and connection.refreshed_at else '尚无成功记录' }}</dd>
+          </div>
+          <div>
+            <dt>最近尝试</dt>
+            <dd>{{ connection.last_attempted_at if connection and connection.last_attempted_at else '尚未尝试' }}</dd>
+          </div>
+        </dl>
+
+        {% if connection and connection.last_state != 'ready' %}
+          {% set latest_pair = state_copy.get(connection.last_state, state_copy['upstream_error']) %}
+          <p role="status"><strong>{{ latest_pair[0] }}</strong> · {{ latest_pair[1] }}{% if connection.refreshed_at %}；上次成功数据仍保留。{% endif %}</p>
+        {% elif connection and connection.data_mode == 'public_live' %}
+          <p role="status">来自实时公开资料，不代表账号归属已验证。</p>
+        {% elif connection and connection.data_mode == 'fixture' %}
+          <p role="status">用于演示流程，不是账号实况。</p>
+        {% elif source.data_mode == 'fixture' and not demo_mode %}
+          <p role="status">演示模式已关闭，本次运行不载入 Fixture。</p>
+        {% elif source.data_mode == 'unavailable' %}
+          <p role="status">{{ source.unavailable_reason }}</p>
+        {% endif %}
+
+        {% if source.data_mode == 'public_live' %}
+          <form method="post" action="{{ url_for('auth.sync_connection', source=source.source_id) }}">
+            <label for="source-{{ source.source_id }}-handle">
+              {{ source.input_label }}
+              <input
+                id="source-{{ source.source_id }}-handle"
+                name="external_handle"
+                type="text"
+                value="{{ connection.external_subject if connection and connection.external_subject else '' }}"
+                placeholder="{{ source.input_hint }}"
+                pattern="{{ source.input_pattern }}"
+                maxlength="{{ source.input_max_length }}"
+                autocomplete="off"
+                autocapitalize="none"
+                spellcheck="false"
+                required
+              >
+              <small>来自实时公开资料，不代表账号归属已验证。</small>
+            </label>
+            <button class="button button-block {{ 'secondary' if connection and connection.data_mode == 'public_live' and connection.refreshed_at else '' }}" type="submit">
+              {{ '重新同步公开数据' if connection and connection.data_mode == 'public_live' and connection.refreshed_at else '同步公开数据' }}
+            </button>
+          </form>
+        {% elif source.data_mode == 'fixture' and demo_mode %}
+          <form method="post" action="{{ url_for('auth.sync_connection', source=source.source_id) }}">
+            <button class="button button-block {{ 'secondary' if connection else '' }}" type="submit">
+              {{ '重新载入 Fixture' if connection else '载入 Fixture 演示数据' }}
+            </button>
+          </form>
+        {% endif %}
       </article>
     {% endfor %}
   </section>
-  <aside class="inline-note"><strong>你的原始记录不会进入页面。</strong><span>页面只接收后端生成的标签、来源与认证状态，访问令牌不会保存在浏览器中。</span></aside>
+
+  <aside class="inline-note">
+    <strong>原始公开响应不会保存或进入匹配页面。</strong>
+    <span>系统只保存规范化标签、来源状态和你提交的公开用户名；所有标签默认仅自己可见。</span>
+  </aside>
 {% endblock %}

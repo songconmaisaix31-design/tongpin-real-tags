@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+set -eu
+if command -v python3 >/dev/null 2>&1; then PY=python3; else PY=python; fi
+exec "$PY" -B scripts/gate.py check --pre-commit

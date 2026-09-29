@@ -3,10 +3,11 @@
 {% block body_class %}chat-page{% endblock %}
 {% block content %}
   {% set is_direct = conversation.type == 'direct' %}
+  {% set is_ai_fallback = conversation.is_ai_fallback %}
   {% set conversation_title = conversation.counterpart.anonymous_alias if is_direct else conversation.event.title if conversation.event else '已归档饭局群聊' %}
-  {% set system_kinds = ('match_started', 'dice', 'task_card', 'match_point', 'group_unlock_task', 'demo_progress') %}
+  {% set system_kinds = ('match_started', 'ai_fallback_started', 'dice', 'task_card', 'match_point', 'group_unlock_task', 'demo_progress') %}
 
-  <div class="mission-shell" data-conversation-type="{{ conversation.type }}" data-archived="{{ 'true' if conversation.is_archived else 'false' }}">
+  <div class="mission-shell" data-conversation-type="{{ conversation.type }}" data-counterpart-type="{{ conversation.counterpart_type }}" data-archived="{{ 'true' if conversation.is_archived else 'false' }}">
     <header class="mission-header" aria-labelledby="conversation-title">
       <a class="mission-header-action mission-back" href="{{ url_for('chat.index') }}" aria-label="返回会话列表">
         <span aria-hidden="true">BACK</span>
@@ -14,16 +15,19 @@
       </a>
 
       <div class="mission-identity">
-        <span class="mission-identity-code" aria-hidden="true">{{ 'D1' if is_direct else 'GR' }}</span>
+        <span class="mission-identity-code" aria-hidden="true">{{ 'AI' if is_ai_fallback else 'D1' if is_direct else 'GR' }}</span>
         <div>
-          <p>{{ '匿名一对一航线' if is_direct else '临时饭局群聊' }}</p>
+          <p>{{ 'AI 候场会话 · 非真人' if is_ai_fallback else '匿名一对一航线' if is_direct else '临时饭局群聊' }}</p>
           <h1 id="conversation-title">{{ conversation_title }}</h1>
         </div>
         <span class="mission-level">{{ conversation.progress.label }}</span>
       </div>
 
       <div class="mission-status" aria-label="会话当前状态">
-        {% if is_direct %}
+        {% if is_ai_fallback %}
+          <span>身份标识</span>
+          <strong>AI</strong>
+        {% elif is_direct %}
           <span>互动热度</span>
           <strong>{{ conversation.progress.heat }}</strong>
         {% else %}
@@ -40,6 +44,23 @@
 
     <section class="conversation-canvas" aria-label="会话画布">
     {% if is_direct %}
+      {% if is_ai_fallback %}
+        <section class="relation-deck ai-standby-deck" data-relation-level="ai" aria-labelledby="relation-title">
+          <div class="relation-copy">
+            <p class="mission-kicker">AI STANDBY / CLEARLY LABELED</p>
+            <h2 id="relation-title">AI 候场搭子 · 非真人</h2>
+            <p>当前没有符合硬性条件的真人候选。AI 只负责临时候场互动，不代表匹配成功。</p>
+          </div>
+          <div class="ai-standby-route" role="status">
+            <strong>真人候选始终优先</strong>
+            <p>出现符合偏好的真人后，请重新发起匿名匹配。</p>
+          </div>
+          <div class="relation-visible">
+            <span>数据边界</span>
+            <p>仅发送最近的文字对话；不发送邮箱、个人资料、标签或匹配权重。</p>
+          </div>
+        </section>
+      {% else %}
       <section class="relation-deck" data-relation-level="{{ conversation.progress.level }}" aria-labelledby="relation-title">
         <div class="relation-copy">
           <p class="mission-kicker">RELATIONSHIP ROUTE</p>
@@ -77,6 +98,7 @@
           <p><strong>全部匹配点已解锁。</strong>现在可由双方自愿交换联系方式。</p>
         </section>
       {% endif %}
+      {% endif %}
     {% else %}
       <section class="group-route" aria-labelledby="group-route-title">
         <div>
@@ -92,7 +114,17 @@
       </section>
     {% endif %}
 
-    {% if not conversation.is_archived %}<a class="chat-jump" href="#composer">跳到消息输入</a>{% endif %}
+    {% if not conversation.is_archived %}
+      <nav class="chat-quick-actions" aria-label="会话快捷操作">
+        {% if is_ai_fallback %}
+          <a class="button" data-primary-action href="#composer">开始 AI 候场互动</a>
+          <span class="text-link chat-jump" aria-label="AI 身份说明">始终明确标注为非真人</span>
+        {% else %}
+          <a class="button" data-primary-action href="#mission-tools">先用破冰工具</a>
+          <a class="text-link chat-jump" href="#composer">直接发送消息</a>
+        {% endif %}
+      </nav>
+    {% endif %}
 
     <div class="mission-workspace">
       <section class="mission-log" aria-labelledby="mission-log-title">
@@ -115,6 +147,15 @@
                     <h3>匹配成功</h3>
                     <p>{{ message.content }}</p>
                     <time datetime="{{ message.created_at }}">{{ message.created_at[:10] }} {{ message.created_at[11:16] }}</time>
+                  </div>
+                </article>
+
+              {% elif system_kind == 'ai_fallback_started' %}
+                <article class="system-event system-notice system-ai-standby" data-system-kind="ai_fallback_started">
+                  <span class="system-index" aria-hidden="true">AI</span>
+                  <div>
+                    <header><strong>AI 候场说明 · 非真人</strong><time datetime="{{ message.created_at }}">{{ message.created_at[11:16] }}</time></header>
+                    <p>{{ message.content }}</p>
                   </div>
                 </article>
 
@@ -207,13 +248,15 @@
         {% if not conversation.is_archived and not conversation.is_blocked and not conversation.is_disabled %}
           <form id="composer" class="message-form mission-composer" method="post" action="{{ url_for('chat.message', conversation_id=conversation.id) }}">
             <label for="content">发送消息 <span data-character-count>0 / 500</span></label>
+            {% if is_ai_fallback %}<p class="ai-composer-note">发送后，最近的文字对话会交给已配置的模型服务生成一次 AI 回复；不会发送个人资料或标签。</p>{% endif %}
             <div class="composer-row">
               <textarea id="content" required maxlength="500" name="content" rows="2" placeholder="输入消息…"></textarea>
               <button class="button" type="submit">发送</button>
             </div>
           </form>
 
-          <details class="mission-drawer" open data-tool-drawer>
+          {% if not is_ai_fallback %}
+          <details class="mission-drawer" id="mission-tools" open data-tool-drawer>
             <summary><span><small>MISSION DECK</small><strong>任务工具</strong></span><span class="drawer-state" data-drawer-label>收起</span></summary>
             <div class="tool-grid">
               <form class="tool-card tool-dice" method="post" action="{{ url_for('chat.tool', conversation_id=conversation.id, tool='dice') }}" data-tool="dice" data-tool-state="ready">
@@ -247,15 +290,16 @@
 
             {% if demo_mode and is_direct %}
               <form class="demo-progress-tool" method="post" action="{{ url_for('chat.demo_advance', conversation_id=conversation.id) }}">
-                <span>LAB / 当前 {{ conversation.progress.label }}</span>
+                <span>FIXTURE DEMO / 当前 {{ conversation.progress.label }}<small>仅加速三分钟演示，不代表自然关系进度</small></span>
                 <button type="submit"{% if conversation.progress.level >= 4 %} disabled aria-disabled="true"{% endif %}>演示：推进关系阶段</button>
               </form>
             {% endif %}
           </details>
+          {% endif %}
         {% elif conversation.is_disabled %}
           <div class="archive-notice blocked-notice" role="status">
-            <strong>该历史会话已停用</strong>
-            <p>账户环境已经隔离，双方不能继续发送消息或使用任务工具。</p>
+            <strong>{{ 'AI 候场服务当前未启用' if is_ai_fallback else '该历史会话已停用' }}</strong>
+            <p>{{ '历史消息仍可查看；服务重新启用前不会调用模型。' if is_ai_fallback else '账户环境已经隔离，双方不能继续发送消息或使用任务工具。' }}</p>
           </div>
         {% elif conversation.is_blocked %}
           <div class="archive-notice blocked-notice" role="status">
@@ -272,7 +316,7 @@
         <div class="safety-launchers" aria-label="安全操作">
           <div><span>SAFETY</span><strong>安全与举报</strong><p>遇到不适内容时，随时提交服务端记录。</p></div>
           <button class="safety-launch report-launch" type="button" data-dialog-open="report-dialog" aria-controls="report-dialog" aria-haspopup="dialog" aria-expanded="false">举报会话</button>
-          {% if is_direct %}<button class="safety-launch block-launch" type="button" data-dialog-open="block-dialog" aria-controls="block-dialog" aria-haspopup="dialog" aria-expanded="false">拉黑对方</button>{% endif %}
+          {% if is_direct and not is_ai_fallback %}<button class="safety-launch block-launch" type="button" data-dialog-open="block-dialog" aria-controls="block-dialog" aria-haspopup="dialog" aria-expanded="false">拉黑对方</button>{% endif %}
         </div>
 
         <details class="danger-zone safety-fallback" id="safety-fallback">
@@ -286,7 +330,7 @@
                 </label>
                 <button class="button danger" type="submit">举报会话</button>
               </form>
-              {% if is_direct %}
+              {% if is_direct and not is_ai_fallback %}
                 <form method="post" action="{{ url_for('chat.block', conversation_id=conversation.id) }}">
                   <button class="button danger-outline" type="submit">拉黑对方</button>
                 </form>
@@ -309,7 +353,7 @@
     </form>
   </dialog>
 
-  {% if is_direct %}
+  {% if is_direct and not is_ai_fallback %}
     <dialog class="safety-dialog block-dialog" id="block-dialog" aria-labelledby="block-dialog-title" hidden>
       <form method="post" action="{{ url_for('chat.block', conversation_id=conversation.id) }}">
         <div class="dialog-heading"><span>BLOCK / DIRECT ONLY</span><h2 id="block-dialog-title">确认拉黑 {{ conversation.counterpart.anonymous_alias }}</h2><p>提交后，你们将无法再建立新的一对一会话。该操作与举报不同，不会自动生成举报记录。</p></div>

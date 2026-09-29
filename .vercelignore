@@ -1,0 +1,11 @@
+.agents/
+.github/
+.venv/
+app/static/qa/
+docs/
+instance/
+submission/
+tests/
+.env
+.env.*
+*.sqlite3

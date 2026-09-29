@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import base64
+import hashlib
+import hmac
 import json
 import math
 from datetime import datetime, timedelta, timezone
@@ -23,12 +26,17 @@ EVENT_STATUSES = {
     "rejected": "审核未通过",
 }
 
-# Server-only coordinates for the existing verified restaurant whitelist.
+# Server-only coordinates for the public restaurant whitelist.
 # User coordinates are used only while handling the current request.
 POI_LOCATIONS = {
-    "poi_001": {"city": "上海", "lat": 31.2253, "lng": 121.4420},
-    "poi_002": {"city": "上海", "lat": 31.2035, "lng": 121.4465},
-    "poi_003": {"city": "上海", "lat": 31.2380, "lng": 121.5155},
+    "poi_001": {"city": "北京", "lat": 39.914525, "lng": 116.402873},
+    "poi_002": {"city": "北京", "lat": 39.941174, "lng": 116.419240},
+    "poi_003": {"city": "北京", "lat": 39.886721, "lng": 116.363329},
+    "poi_004": {"city": "北京", "lat": 39.927286, "lng": 116.413522},
+    "poi_005": {"city": "北京", "lat": 39.871734, "lng": 116.405566},
+    "poi_006": {"city": "北京", "lat": 39.899292, "lng": 116.385072},
+    "poi_007": {"city": "北京", "lat": 39.932207, "lng": 116.367609},
+    "poi_008": {"city": "北京", "lat": 39.914089, "lng": 116.412053},
 }
 DEFAULT_RADIUS_KM = 5.0
 MAX_RADIUS_KM = 50.0
@@ -63,6 +71,12 @@ def _event_members(event_id: str, status: str | None = None) -> list[dict]:
         query += " AND em.membership_status = ?"
         params.append(status)
     return [dict(row) for row in get_db().execute(query, params).fetchall()]
+
+
+def _review_token(event_id: str, user_id: str) -> str:
+    key = str(current_app.config["SECRET_KEY"]).encode("utf-8")
+    digest = hmac.new(key, f"{event_id}\0{user_id}".encode("utf-8"), hashlib.sha256).digest()[:18]
+    return base64.urlsafe_b64encode(digest).decode("ascii").rstrip("=")
 
 
 def _event_summary(event: dict, user_id: str) -> dict:
@@ -177,6 +191,7 @@ def list_events(user_id: str, args) -> list[dict]:
     else:
         events.sort(key=lambda item: item["raw_score"], reverse=True)
     for event in events:
+        event.pop("raw_score", None)
         if "distance_km" in event:
             event["distance_km"] = round(event["distance_km"], 1)
     return events
@@ -192,12 +207,14 @@ def get_event(event_id: str, user_id: str | None = None) -> dict | None:
             return None
         _event_summary(event, user_id)
         member = get_db().execute(
-            "SELECT * FROM event_members WHERE event_id = ? AND user_id = ?", (event_id, user_id)
+            """SELECT role, membership_status, match_score, common_tag_count, checked_in, joined_at
+               FROM event_members WHERE event_id = ? AND user_id = ?""",
+            (event_id, user_id),
         ).fetchone()
         event["viewer_membership"] = dict(member) if member else None
         event["is_host"] = is_host
         event["group_conversation_id"] = _group_conversation_id(event_id)
-        # Internal authorization id; page templates do not receive it.
+        event.pop("raw_score", None)
         event.pop("host_id", None)
     return event
 
@@ -249,6 +266,11 @@ def _form_values(form) -> dict:
 
 
 def create_user_event(user_id: str, form) -> str:
+    host = get_user(user_id)
+    if host is None:
+        raise ValidationError("发起人账户不存在。")
+    if not host["phone_verified"]:
+        raise ValidationError("发起线下饭局前需完成手机号验证。")
     values = _form_values(form)
     poi = POIS[values["poi_id"]]
     event_id = f"event_{uuid4().hex[:12]}"
@@ -295,6 +317,8 @@ def signup_for_event(event_id: str, user_id: str) -> str:
         raise ValidationError("活动不存在。")
     if event["status"] != "recruiting":
         raise ValidationError("此活动当前不接受报名。")
+    if _parse_datetime(event["signup_deadline"]) <= datetime.now(timezone.utc):
+        raise ValidationError("此活动报名已截止。")
     if event["approved_count"] >= event["max_size"]:
         raise ValidationError("活动人数已满。")
     if event["viewer_membership"]:
@@ -303,42 +327,117 @@ def signup_for_event(event_id: str, user_id: str) -> str:
         raise ValidationError("该时段与已报名活动冲突。")
     score = event_match_score(user_id, event["required_tags"])
     membership_status = "pending" if event["signup_mode"] == "review" else "approved"
-    get_db().execute(
+    db = get_db()
+    result = db.execute(
         """INSERT INTO event_members (event_id, user_id, role, membership_status, match_score, common_tag_count, joined_at)
-           VALUES (?, ?, 'member', ?, ?, ?, ?)""",
-        (event_id, user_id, membership_status, score["display_score"], score["common_tag_count"], utcnow()),
+           SELECT ?, ?, 'member', ?, ?, ?, ?
+           WHERE ? != 'approved'
+              OR (SELECT COUNT(*) FROM event_members
+                  WHERE event_id = ? AND membership_status = 'approved')
+                 < (SELECT max_size FROM events WHERE id = ?)""",
+        (
+            event_id,
+            user_id,
+            membership_status,
+            score["display_score"],
+            score["common_tag_count"],
+            utcnow(),
+            membership_status,
+            event_id,
+            event_id,
+        ),
     )
-    get_db().commit()
+    if not result.rowcount:
+        db.rollback()
+        raise ValidationError("活动人数已满。")
+    db.commit()
     return membership_status
 
 
 def review_applicants(event_id: str, host_id: str) -> list[dict]:
     event = get_event(event_id, host_id)
-    if not event or not event["is_host"] or event["signup_mode"] != "review":
+    if (
+        not event
+        or not event["is_host"]
+        or event["signup_mode"] != "review"
+        or event["status"] != "recruiting"
+    ):
         raise ValidationError("无权审核此活动的报名。")
     rows = get_db().execute(
         """SELECT user_id, match_score, common_tag_count, joined_at FROM event_members
            WHERE event_id = ? AND membership_status = 'pending' ORDER BY joined_at""", (event_id,)
     ).fetchall()
-    # Intentionally omit profile, photo, name and gender: the anonymous review contract.
-    return [dict(row) for row in rows]
+    # The host receives an opaque action reference, never a profile id.
+    return [
+        {
+            "review_token": _review_token(event_id, row["user_id"]),
+            "match_score": row["match_score"],
+            "common_tag_count": row["common_tag_count"],
+            "joined_at": row["joined_at"],
+        }
+        for row in rows
+    ]
 
 
 def review_signup(event_id: str, host_id: str, applicant_id: str, approve: bool) -> None:
-    if not review_applicants(event_id, host_id):
-        # The check above also guards host ownership, even when there are no pending users.
-        event = get_event(event_id, host_id)
-        if not event or not event["is_host"]:
-            raise ValidationError("无权审核此活动的报名。")
+    event = get_event(event_id, host_id)
+    if (
+        not event
+        or not event["is_host"]
+        or event["signup_mode"] != "review"
+        or event["status"] != "recruiting"
+    ):
+        raise ValidationError("无权审核此活动的报名。")
+    if _parse_datetime(event["signup_deadline"]) <= datetime.now(timezone.utc):
+        raise ValidationError("此活动报名已截止。")
+    pending = get_db().execute(
+        """SELECT user_id FROM event_members
+           WHERE event_id = ? AND membership_status = 'pending'""",
+        (event_id,),
+    ).fetchall()
+    resolved_id = next(
+        (
+            row["user_id"]
+            for row in pending
+            if hmac.compare_digest(applicant_id, row["user_id"])
+            or hmac.compare_digest(applicant_id, _review_token(event_id, row["user_id"]))
+        ),
+        None,
+    )
+    if resolved_id is None:
+        raise ValidationError("没有可处理的报名申请。")
+    if approve:
+        approved_count = get_db().execute(
+            """SELECT COUNT(*) AS count FROM event_members
+               WHERE event_id = ? AND membership_status = 'approved'""",
+            (event_id,),
+        ).fetchone()["count"]
+        if approved_count >= event["max_size"]:
+            raise ValidationError("活动人数已满，不能继续通过申请。")
     status = "approved" if approve else "rejected"
-    result = get_db().execute(
+    db = get_db()
+    result = db.execute(
         """UPDATE event_members SET membership_status = ?
-           WHERE event_id = ? AND user_id = ? AND membership_status = 'pending'""",
-        (status, event_id, applicant_id),
+           WHERE event_id = ? AND user_id = ? AND membership_status = 'pending'
+             AND (? = 0 OR
+                  (SELECT COUNT(*) FROM event_members
+                   WHERE event_id = ? AND membership_status = 'approved')
+                  < (SELECT max_size FROM events WHERE id = ?))""",
+        (status, event_id, resolved_id, int(approve), event_id, event_id),
     )
     if not result.rowcount:
+        if approve:
+            still_pending = db.execute(
+                """SELECT 1 FROM event_members
+                   WHERE event_id = ? AND user_id = ? AND membership_status = 'pending'""",
+                (event_id, resolved_id),
+            ).fetchone()
+            if still_pending:
+                db.rollback()
+                raise ValidationError("活动人数已满，不能继续通过申请。")
+        db.rollback()
         raise ValidationError("没有可处理的报名申请。")
-    get_db().commit()
+    db.commit()
 
 
 def cancel_event(event_id: str, host_id: str) -> None:
@@ -349,6 +448,11 @@ def cancel_event(event_id: str, host_id: str) -> None:
         raise ValidationError("当前状态不能取消活动。")
     db = get_db()
     db.execute("UPDATE events SET status = 'cancelled' WHERE id = ?", (event_id,))
+    db.execute(
+        """UPDATE event_members SET membership_status = 'rejected'
+           WHERE event_id = ? AND membership_status = 'pending'""",
+        (event_id,),
+    )
     db.execute("UPDATE event_coupons SET status = 'invalid' WHERE event_id = ?", (event_id,))
     db.commit()
 
@@ -362,12 +466,14 @@ def _form_group(event: dict) -> None:
     db = get_db()
     if _group_conversation_id(event["id"]):
         return
+    members = _event_members(event["id"], "approved")
+    if not (3 <= len(members) <= event["max_size"] <= 10):
+        raise ValidationError("活动成员数量不符合 3–10 人成团边界。")
     conversation_id = f"group_{uuid4().hex[:12]}"
     db.execute(
         "INSERT INTO conversations (id, type, event_id, created_at) VALUES (?, 'event_group', ?, ?)",
         (conversation_id, event["id"], utcnow()),
     )
-    members = _event_members(event["id"], "approved")
     aliases = ("银杏", "星云", "海盐", "青柠", "云杉", "琥珀", "月桂", "鲸歌", "栖木", "微光")
     for index, member in enumerate(members):
         db.execute(
@@ -398,29 +504,45 @@ def refresh_event_statuses(now: datetime | None = None) -> int:
     now = now or datetime.now(timezone.utc)
     db = get_db()
     changed = 0
-    rows = db.execute("SELECT * FROM events WHERE status IN ('recruiting', 'formed', 'ongoing')").fetchall()
+    wrote = False
+    rows = db.execute("SELECT * FROM events WHERE status IN ('recruiting', 'formed', 'ongoing', 'ended')").fetchall()
     for row in rows:
         event = _decode_event(row)
         start = _parse_datetime(event["start_at"])
         deadline = _parse_datetime(event["signup_deadline"])
         if event["status"] == "recruiting" and deadline <= now:
             count = len(_event_members(event["id"], "approved"))
-            if count >= event["min_size"]:
+            if 3 <= event["min_size"] <= count <= event["max_size"] <= 10:
                 db.execute("UPDATE events SET status = 'formed' WHERE id = ?", (event["id"],))
                 event["status"] = "formed"
                 _form_group(event)
             else:
                 db.execute("UPDATE events SET status = 'cancelled' WHERE id = ?", (event["id"],))
+                event["status"] = "cancelled"
+            db.execute(
+                """UPDATE event_members SET membership_status = 'rejected'
+                   WHERE event_id = ? AND membership_status = 'pending'""",
+                (event["id"],),
+            )
             changed += 1
+            wrote = True
         if event["status"] == "formed" and start <= now:
             db.execute("UPDATE events SET status = 'ongoing' WHERE id = ?", (event["id"],))
+            event["status"] = "ongoing"
             changed += 1
+            wrote = True
         if event["status"] in ("formed", "ongoing") and start + timedelta(hours=3) <= now:
             db.execute("UPDATE events SET status = 'ended' WHERE id = ?", (event["id"],))
+            event["status"] = "ended"
             changed += 1
+            wrote = True
         if start + timedelta(days=7) <= now:
-            db.execute("UPDATE conversations SET archived_at = ? WHERE event_id = ? AND archived_at IS NULL", (utcnow(), event["id"]))
-    if changed:
+            archived = db.execute(
+                "UPDATE conversations SET archived_at = ? WHERE event_id = ? AND archived_at IS NULL",
+                (utcnow(), event["id"]),
+            )
+            wrote = wrote or bool(archived.rowcount)
+    if wrote:
         db.commit()
     return changed
 
@@ -435,7 +557,7 @@ def demo_settle_event(event_id: str, user_id: str) -> str:
         raise ValidationError("只有报名中的活动可演示结算。")
     approved = len(_event_members(event_id, "approved"))
     db = get_db()
-    if approved >= event["min_size"]:
+    if 3 <= event["min_size"] <= approved <= event["max_size"] <= 10:
         db.execute("UPDATE events SET status = 'formed' WHERE id = ?", (event_id,))
         event["status"] = "formed"
         _form_group(event)
@@ -443,6 +565,11 @@ def demo_settle_event(event_id: str, user_id: str) -> str:
     else:
         db.execute("UPDATE events SET status = 'cancelled' WHERE id = ?", (event_id,))
         result = "cancelled"
+    db.execute(
+        """UPDATE event_members SET membership_status = 'rejected'
+           WHERE event_id = ? AND membership_status = 'pending'""",
+        (event_id,),
+    )
     db.commit()
     return result
 

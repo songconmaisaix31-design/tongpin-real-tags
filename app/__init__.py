@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import click
@@ -12,9 +13,9 @@ from .db import close_db, init_app as init_db
 def create_app(config: type[Config] = Config) -> Flask:
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_object(config)
-    app.config.setdefault("DATABASE", str(Path(app.instance_path) / "realtags.sqlite3"))
+    configured_database = app.config.get("DATABASE") or os.environ.get("DATABASE_PATH")
+    app.config["DATABASE"] = configured_database or str(Path(app.instance_path) / "realtags.sqlite3")
 
-    Path(app.instance_path).mkdir(parents=True, exist_ok=True)
     app.teardown_appcontext(close_db)
     init_db(app)
 

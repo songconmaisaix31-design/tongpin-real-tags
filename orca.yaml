@@ -1,0 +1,4 @@
+scripts:
+  setup: |
+    python -m venv .venv
+    .\.venv\Scripts\python.exe -m pip install --disable-pip-version-check -r requirements.txt

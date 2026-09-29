@@ -80,9 +80,28 @@ def detail(event_id: str):
     event = get_event(event_id, user["id"])
     if event is None:
         abort(404)
-    applicants = review_applicants(event_id, user["id"]) if event["is_host"] and event["signup_mode"] == "review" else []
+    applicants = (
+        review_applicants(event_id, user["id"])
+        if event["is_host"] and event["signup_mode"] == "review" and event["status"] == "recruiting"
+        else []
+    )
+    template_applicants = [
+        {
+            "user_id": applicant["review_token"],
+            "match_score": applicant["match_score"],
+            "common_tag_count": applicant["common_tag_count"],
+            "joined_at": applicant["joined_at"],
+        }
+        for applicant in applicants
+    ]
     coupon = viewer_coupon(event_id, user["id"])
-    return render_template("event_detail.html", event=event, applicants=applicants, coupon=coupon, demo_mode=current_app.config["DEMO_MODE"])
+    return render_template(
+        "event_detail.html",
+        event=event,
+        applicants=template_applicants,
+        coupon=coupon,
+        demo_mode=current_app.config["DEMO_MODE"],
+    )
 
 
 @bp.post("/events/<event_id>/signup")
@@ -100,6 +119,9 @@ def signup(event_id: str):
 @bp.post("/events/<event_id>/review/<applicant_id>/<decision>")
 @login_required
 def review(event_id: str, applicant_id: str, decision: str):
+    if decision not in ("approve", "reject"):
+        flash("无效的报名审核决定。", "error")
+        return redirect(url_for("events.detail", event_id=event_id))
     try:
         review_signup(event_id, current_user()["id"], applicant_id, decision == "approve")
     except ValidationError as error:

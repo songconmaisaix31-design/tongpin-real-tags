@@ -222,6 +222,34 @@
   font-weight: 760;
 }
 
+.ai-standby-deck {
+  border-top: var(--neo-border-heavy) solid var(--neo-purple);
+  background: linear-gradient(90deg, rgba(117, 87, 255, 0.08), transparent 62%);
+}
+
+.ai-standby-route {
+  border: var(--neo-border) solid var(--neo-ink);
+  border-radius: var(--neo-radius-control);
+  background: var(--neo-yellow);
+  padding: 0.8rem;
+}
+
+.ai-standby-route strong {
+  display: block;
+  font-size: 0.82rem;
+}
+
+.ai-standby-route p,
+.ai-composer-note {
+  margin-top: 0.3rem;
+  color: var(--neo-muted);
+  font-size: 0.7rem;
+}
+
+.ai-composer-note {
+  margin: 0 0.2rem 0.55rem;
+}
+
 .relation-unlocks,
 .contact-unlock {
   display: flex;

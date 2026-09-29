@@ -1,0 +1,27 @@
+{
+  "users": [
+    {
+      "username": "duo",
+      "streak": 321,
+      "totalXp": 12345,
+      "currentCourseId": "course-ja",
+      "courses": [
+        {
+          "id": "course-ja",
+          "title": "Japanese",
+          "learningLanguage": "ja",
+          "xp": 5000
+        },
+        {
+          "id": "course-en",
+          "title": "English",
+          "learningLanguage": "en",
+          "xp": 7345
+        }
+      ],
+      "bio": "excluded profile field",
+      "email": "excluded@example.test"
+    }
+  ],
+  "excluded_marker": "SHOULD_NOT_PERSIST"
+}

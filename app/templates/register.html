@@ -4,9 +4,9 @@
 {% block content %}
   <section class="form-page-heading" aria-labelledby="register-title">
     <div><p class="eyebrow">CREATE YOUR PRIVATE PROFILE</p><h1 id="register-title">创建匿名账号</h1></div>
-    <aside class="privacy-note"><strong>默认最小披露</strong><p>基础资料只用于服务端匹配，不会出现在匿名匹配页。</p></aside>
+    <aside class="privacy-note"><strong>默认最小披露</strong><p>基础资料只用于服务端匹配，不会出现在匿名匹配页。</p><p data-registration-draft-status>刷新或回退会恢复本标签页暂存的资料；密码不会保存。</p></aside>
   </section>
-  <form class="structured-form" method="post" action="{{ url_for('auth.register') }}">
+  <form class="structured-form" data-registration-draft method="post" action="{{ url_for('auth.register') }}">
     <section class="form-section" aria-labelledby="account-section-title">
       <div class="form-section-heading"><span>01</span><div><h2 id="account-section-title">账号与匿名身份</h2><p>带 * 的字段为完成注册的必要信息。</p></div></div>
       <div class="form-grid two">

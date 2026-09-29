@@ -16,15 +16,29 @@
         <div><dt>类型</dt><dd>{{ user.mbti }}</dd></div>
         <div><dt>目的</dt><dd>{{ user.purposes|join('、') }}</dd></div>
       </dl>
-      <p class="profile-verification"><span aria-hidden="true"></span>手机号验证：{{ '已完成（演示）' if user.phone_verified else '未完成' }}</p>
+      <p class="profile-verification"><span aria-hidden="true"></span>手机号验证：{% if user.phone_verified %}{{ '已完成（演示）' if demo_mode else '已验证' }}{% else %}未完成{% endif %}</p>
     </div>
-    <a class="button profile-connections-action" href="{{ url_for('auth.connections') }}">管理数据连接</a>
+    <div class="profile-journey-actions">
+      <a class="button profile-connections-action" href="{{ url_for('auth.connections') }}">确认数据来源</a>
+      <a class="button secondary" data-primary-action href="{{ url_for('matches.index') }}">下一步：匿名匹配</a>
+    </div>
   </section>
 
   <section class="content-section signal-ledger" aria-labelledby="tag-title">
     <div class="section-heading-line signal-ledger-heading">
       <div><p class="eyebrow">VERIFIED BEHAVIOR SIGNALS</p><h2 id="tag-title">我的真实标签</h2><p>按来源折叠整理；需要时再展开详情，不再让每个标签占据一整张大卡。</p></div>
-      <span class="privacy-lock">SELF ONLY · 不会公开</span>
+      <div class="profile-truth-boundary">
+        <span class="privacy-lock">SELF ONLY · 不会公开</span>
+        {% if tags|selectattr('data_mode', 'equalto', 'fixture')|list %}
+          <span class="status-pill status-neutral">演示数据 Fixture</span>
+          <p>用于演示流程，不是账号实况</p>
+        {% endif %}
+        {% if demo_mode %}
+          <p>先在连接页确认 Public Live、Fixture 或 unavailable 状态；本页只展示你的私密标签投影。</p>
+        {% else %}
+          <p>先在连接页确认 Public Live 或 unavailable 状态；本页只展示你的私密标签投影。</p>
+        {% endif %}
+      </div>
     </div>
     {% if tags %}
       <div class="signal-source-stack">

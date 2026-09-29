@@ -1,0 +1,175 @@
+{
+  "schema_version": 1,
+  "project": "realtags-hackathon",
+  "repo_selector": "id:15b0721e-5834-4702-a6f0-5155ebf31346",
+  "base_ref": "origin/fleet-control-hackathon-prize",
+  "fetch_before_launch": true,
+  "coordinator": {
+    "agent": "codex",
+    "setup": "run",
+    "worktree_prefix": "fleet-control"
+  },
+  "worker_defaults": {
+    "agent": "codex",
+    "setup": "run",
+    "worktree_mode": "new-top-level"
+  },
+  "branch_rules": {
+    "track_pattern": "^(?:[^/]+/)?trk-(?P<track>[a-z0-9_]+)-(?P<task>[a-z0-9-]+)$",
+    "control_pattern": "^(?:[^/]+/)?fleet-control(?:-|$)",
+    "base_branches": ["main", "master", "develop"]
+  },
+  "global_forbidden": [
+    ".git/**",
+    ".env",
+    ".env.local",
+    ".env.production",
+    "**/.env",
+    "**/.env.local",
+    "**/.env.production",
+    "**/*.pem",
+    "**/*.key",
+    "**/*credential*",
+    "**/*secret*"
+  ],
+  "tracks": {
+    "control": {
+      "description": "Fleet plans, run state, decisions, and cross-track handoffs only.",
+      "allow": [
+        ".agents/plans/**",
+        ".agents/runs/**",
+        ".agents/decisions/**",
+        ".agents/handoffs/**"
+      ],
+      "checks": []
+    },
+    "architecture": {
+      "description": "Frozen product specification, data-source contract, and PRD acceptance matrix.",
+      "allow": [
+        "docs/specs/**",
+        "docs/contracts/**",
+        "docs/acceptance/**"
+      ],
+      "checks": ["git diff --check"]
+    },
+    "data": {
+      "description": "Credential-free data-source adapters and the connection boundary.",
+      "allow": [
+        "app/services/adapters.py",
+        "app/services/data_sources/**",
+        "app/config.py",
+        "app/constants.py",
+        "app/db.py",
+        "app/routes/auth.py",
+        "app/templates/connections.html",
+        "tests/test_data_sources.py",
+        "tests/fixtures/data_sources/**"
+      ],
+      "checks": [
+        ".venv\\Scripts\\python.exe -m unittest discover -s tests -p \"test_data_sources.py\" -v",
+        ".venv\\Scripts\\python.exe -m compileall -q app/services app/routes"
+      ]
+    },
+    "core": {
+      "description": "Matching, progressive reveal, chat safety, and event domain behavior.",
+      "allow": [
+        "app/services/matching.py",
+        "app/services/chat.py",
+        "app/services/events.py",
+        "app/services/users.py",
+        "app/services/moderation.py",
+        "app/routes/matches.py",
+        "app/routes/chat.py",
+        "app/routes/events.py",
+        "tests/test_core_contracts.py"
+      ],
+      "checks": [
+        ".venv\\Scripts\\python.exe -m unittest discover -s tests -p \"test_core_contracts.py\" -v",
+        ".venv\\Scripts\\python.exe -m unittest discover -s tests -p \"test_core.py\" -v"
+      ]
+    },
+    "experience": {
+      "description": "Judge-facing SSR journey, responsive presentation, and visual evidence.",
+      "allow": [
+        "app/templates/base.html",
+        "app/templates/home.html",
+        "app/templates/login.html",
+        "app/templates/register.html",
+        "app/templates/profile.html",
+        "app/templates/matches.html",
+        "app/templates/match_searching.html",
+        "app/templates/match_detail.html",
+        "app/templates/conversations.html",
+        "app/templates/conversation.html",
+        "app/templates/events.html",
+        "app/templates/event_detail.html",
+        "app/templates/event_form.html",
+        "app/static/**",
+        "tests/test_judge_experience.py",
+        "docs/qa/hackathon/ui/**"
+      ],
+      "checks": [
+        ".venv\\Scripts\\python.exe -m unittest discover -s tests -p \"test_judge_experience.py\" -v",
+        "node --test tests/match_flow.test.mjs"
+      ]
+    },
+    "qa": {
+      "description": "Independent black-box acceptance, truthful claims, and submission package.",
+      "allow": [
+        "tests/acceptance/**",
+        "tools/hackathon_acceptance.py",
+        "submission/**",
+        "docs/qa/hackathon/acceptance/**"
+      ],
+      "checks": [
+        ".venv\\Scripts\\python.exe -m unittest discover -s tests/acceptance -v",
+        ".venv\\Scripts\\python.exe tools/hackathon_acceptance.py --dry-run"
+      ]
+    },
+    "integration": {
+      "description": "Sole integrator for exact worker SHAs, shared roots, release checks, and final candidate.",
+      "allow": [
+        ".gitignore",
+        "README.md",
+        "requirements.txt",
+        "run.py",
+        "harness.cmd",
+        "app/__init__.py",
+        "app/routes/main.py",
+        "app/routes/admin.py",
+        "app/templates/admin_dashboard.html",
+        "app/templates/admin_event_review.html",
+        "app/templates/admin_login.html",
+        "app/templates/admin_report_review.html",
+        "tests/test_e2e_harness.py",
+        "tools/harness_cli.py",
+        "docs/qa/hackathon/integration/**"
+      ],
+      "checks": [
+        ".venv\\Scripts\\python.exe -m compileall -q app tools",
+        ".venv\\Scripts\\python.exe -m unittest discover -s tests -v",
+        ".venv\\Scripts\\python.exe -m unittest discover -s tests/acceptance -v",
+        ".venv\\Scripts\\python.exe tools/hackathon_acceptance.py --require-assembly",
+        "node --test tests/match_flow.test.mjs",
+        "harness.cmd --no-color",
+        "git diff --check"
+      ]
+    },
+    "automation": {
+      "description": "Fleet control plane, scripts, hooks, and CI ownership gates.",
+      "allow": [
+        "scripts/**",
+        ".githooks/**",
+        ".github/**",
+        ".agents/fleet.json",
+        ".agents/prompts/**",
+        "AGENTS.md",
+        "MEMORY.md",
+        "Makefile",
+        "docs/fleet/**",
+        "orca.yaml"
+      ],
+      "checks": ["python -B -m unittest discover -s scripts/tests -v"]
+    }
+  }
+}

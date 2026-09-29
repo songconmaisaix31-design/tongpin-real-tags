@@ -22,9 +22,18 @@
         <p class="match-ready-copy">匹配会经过三个服务端步骤。你的原始记录、标签详情和匹配权重都不会发送给候选人。</p>
         {% if candidate_count %}
           <form class="match-start-form" method="post" action="{{ url_for('matches.search_start') }}">
-            <button class="button button-large" type="submit">开始匿名匹配</button>
+            <button class="button button-large" data-primary-action type="submit">开始匿名匹配</button>
           </form>
           <p class="match-start-note">点击后进入短暂的计算过程；匹配中可以随时取消。</p>
+        {% elif ai_fallback_available %}
+          <div class="empty-state match-empty" role="status">
+            <span>AI STANDBY · NOT A REAL PERSON</span>
+            <h3>当前没有真人候选，AI 候场搭子可以先陪你聊</h3>
+            <p>它会始终明确标注为 AI，不会生成匹配分、冒充真人或参与联系方式解锁。只有你发送文字后才会调用模型服务。</p>
+            <form class="match-start-form" method="post" action="{{ url_for('matches.search_start') }}">
+              <button class="button" data-primary-action type="submit">进入 AI 候场互动 · 非真人</button>
+            </form>
+          </div>
         {% else %}
           <div class="empty-state match-empty" role="status">
             <span>NO ELIGIBLE MATCHES</span>
@@ -41,7 +50,7 @@
         <ol class="match-rule-list">
           <li><span>01</span><div><strong>筛选候选池</strong><p>检查年龄范围与双方匹配偏好，不占匹配权重。</p></div></li>
           <li><span>02</span><div><strong>计算相似度</strong><p>比较真实行为标签与自填兴趣，只在服务端处理。</p></div></li>
-          <li><span>03</span><div><strong>生成匿名结果</strong><p>只展示平滑后的百分比、匿名代号和共同点数量。</p></div></li>
+          <li><span>03</span><div><strong>生成匿名结果</strong><p>只展示平滑后的百分比和隐藏共同点数量。</p></div></li>
         </ol>
         <div class="match-never-show">
           <strong>匹配阶段不会展示</strong>

@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 import re
-import sqlite3
 from functools import wraps
 from uuid import uuid4
 
 from flask import current_app, flash, redirect, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from ..db import get_db, utcnow
+from ..db import get_db, is_integrity_error, utcnow
 from .users import ValidationError
 
 
@@ -36,8 +35,10 @@ def create_admin(email: str, password: str, display_name: str) -> str:
             (admin_id, email, generate_password_hash(password), display_name, utcnow()),
         )
         get_db().commit()
-    except sqlite3.IntegrityError as error:
-        raise ValidationError("该管理员邮箱已存在。") from error
+    except Exception as error:
+        if is_integrity_error(error):
+            raise ValidationError("该管理员邮箱已存在。") from error
+        raise
     return admin_id
 
 

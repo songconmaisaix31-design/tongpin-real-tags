@@ -18,6 +18,21 @@
   ]);
   const COMPLETE_DELAY = 2500;
 
+  const submitMatchCompletion = (form) => {
+    if (!form) {
+      return false;
+    }
+    if (typeof form.requestSubmit === "function") {
+      form.requestSubmit();
+      return true;
+    }
+    if (typeof form.submit === "function") {
+      form.submit();
+      return true;
+    }
+    return false;
+  };
+
   const createMatchTimeline = ({
     reducedMotion = false,
     schedule = (callback, delay) => setTimeout(callback, delay),
@@ -148,7 +163,10 @@
       if (live) {
         live.textContent = "已找到一位同频的人，正在打开匿名结果。";
       }
-      submitTimer = window.setTimeout(() => completeForm?.requestSubmit(), reducedMotion ? 120 : 360);
+      submitTimer = window.setTimeout(
+        () => submitMatchCompletion(completeForm),
+        reducedMotion ? 120 : 360
+      );
     };
 
     const timeline = createMatchTimeline({
@@ -173,5 +191,11 @@
     return timeline;
   };
 
-  return { STEP_TIMELINE, COMPLETE_DELAY, createMatchTimeline, bindMatchSearchPage };
+  return {
+    STEP_TIMELINE,
+    COMPLETE_DELAY,
+    createMatchTimeline,
+    submitMatchCompletion,
+    bindMatchSearchPage
+  };
 });

@@ -1,0 +1,8 @@
+{
+  "login": "octocat",
+  "public_repos": 12,
+  "avatar_url": "https://example.test/avatar.png",
+  "bio": "excluded profile field",
+  "email": "excluded@example.test",
+  "excluded_marker": "SHOULD_NOT_PERSIST"
+}

@@ -69,8 +69,8 @@ class MvpWorkflowHarness(unittest.TestCase):
         self.assertEqual(response.status_code, 302, response.get_data(as_text=True))
         return response.headers["Location"].rstrip("/").rsplit("/", 1)[-1]
 
-    def test_registration_authorization_and_profile_flow(self) -> None:
-        """Visitor can register, authorize both adapters, and see only their own source-labelled tags."""
+    def test_registration_source_sync_and_profile_flow(self) -> None:
+        """Visitor rejects legacy authorization and loads a self-only explicit Fixture."""
         visitor = self.app.test_client()
         self.assertEqual(visitor.get("/").status_code, 200)
         registration = visitor.post(
@@ -92,14 +92,15 @@ class MvpWorkflowHarness(unittest.TestCase):
         )
         self.assertEqual(registration.status_code, 302)
         self.assertEqual(registration.headers["Location"], "/profile/connections")
-        for source in ("duolingo", "keep"):
-            response = visitor.post(
-                f"/profile/connections/{source}/authorize", data={"authorization_code": "demo-authorized"}
-            )
-            self.assertEqual(response.status_code, 302)
+        legacy_authorization = visitor.post(
+            "/profile/connections/duolingo/authorize",
+            data={"authorization_code": "demo-authorized"},
+        )
+        self.assertEqual(legacy_authorization.status_code, 404)
+        fixture_sync = visitor.post("/profile/connections/keep/sync")
+        self.assertEqual(fixture_sync.status_code, 302)
         profile = visitor.get("/profile")
         self.assertEqual(profile.status_code, 200)
-        self.assertIn("duolingo", profile.get_data(as_text=True))
         self.assertIn("keep", profile.get_data(as_text=True))
         with self.app.app_context():
             user_id = self._user_id("harness-user@example.test")
@@ -109,7 +110,10 @@ class MvpWorkflowHarness(unittest.TestCase):
                 user_id,
                 [item["candidate"]["id"] for item in ranked_matches("demo_001")],
             )
-        self.assertGreaterEqual(len(tags), 10)
+        self.assertEqual(len(tags), 5)
+        self.assertTrue(all(tag["source"] == "keep" for tag in tags))
+        self.assertTrue(all(tag["data_mode"] == "fixture" for tag in tags))
+        self.assertTrue(all(not tag["verified"] for tag in tags))
         self.assertTrue(all(tag["visibility"] == "self_only" for tag in tags))
 
     def test_anonymous_match_chat_unlock_and_safety_flow(self) -> None:

@@ -4,7 +4,8 @@ import secrets
 
 from flask import Blueprint, abort, flash, redirect, render_template, request, session, url_for
 
-from ..services.chat import start_direct_conversation
+from ..services.ai_fallback import ai_fallback_available
+from ..services.chat import start_ai_fallback_conversation, start_direct_conversation
 from ..services.matching import ranked_matches
 from ..services.users import ValidationError, current_user, get_user, login_required
 
@@ -41,6 +42,23 @@ def _find_match(viewer_id: str, candidate_id: str | None) -> dict | None:
     return next((item for item in ranked_matches(viewer_id) if item["candidate"]["id"] == candidate_id), None)
 
 
+def _is_result_reference(flow: dict, supplied: str) -> bool:
+    return any(
+        isinstance(expected, str) and secrets.compare_digest(supplied, expected)
+        for expected in (flow.get("candidate_id"), flow.get("attempt_id"))
+    )
+
+
+def _result_projection(match: dict, attempt_id: str) -> dict:
+    """Return only fields permitted in the L0 template context."""
+    return {
+        "display_score": match["display_score"],
+        "common_point_count": match["common_point_count"],
+        # The existing template needs an action reference, never the profile id.
+        "candidate": {"id": attempt_id},
+    }
+
+
 def _start_attempt(user_id: str, match: dict, seen_ids: list[str]) -> dict:
     candidate_id = match["candidate"]["id"]
     flow = {
@@ -54,12 +72,29 @@ def _start_attempt(user_id: str, match: dict, seen_ids: list[str]) -> dict:
     return flow
 
 
+def _redirect_to_ai_fallback(user_id: str):
+    if not ai_fallback_available():
+        return None
+    try:
+        conversation_id = start_ai_fallback_conversation(user_id)
+    except ValidationError as error:
+        flash(str(error), "error")
+        return None
+    session.pop(MATCH_FLOW_SESSION_KEY, None)
+    flash("当前没有符合条件的真人候选，已进入明确标注的 AI 候场互动。", "info")
+    return redirect(url_for("chat.detail", conversation_id=conversation_id))
+
+
 @bp.get("/matches")
 @login_required
 def index():
     user = current_user()
     matches = ranked_matches(user["id"])
-    return render_template("matches.html", candidate_count=len(matches))
+    return render_template(
+        "matches.html",
+        candidate_count=len(matches),
+        ai_fallback_available=ai_fallback_available(),
+    )
 
 
 @bp.post("/matches/search/start")
@@ -68,6 +103,9 @@ def search_start():
     user = current_user()
     matches = ranked_matches(user["id"])
     if not matches:
+        fallback = _redirect_to_ai_fallback(user["id"])
+        if fallback is not None:
+            return fallback
         flash("暂时没有符合硬性筛选条件的候选人。我们不会为了填满结果而放宽你的偏好。", "info")
         return redirect(url_for("matches.index"))
 
@@ -96,9 +134,26 @@ def searching():
 def search_complete():
     user = current_user()
     flow = _flow_for(user["id"])
-    match = _find_match(user["id"], flow["candidate_id"])
-    if not _matches_attempt(flow, "searching") or match is None:
+    if not _matches_attempt(flow, "searching"):
         flash("这次匹配已失效，请重新开始。", "info")
+        return redirect(url_for("matches.index"))
+    match = _find_match(user["id"], flow["candidate_id"])
+    if match is None:
+        matches = ranked_matches(user["id"])
+        seen_ids = set(flow["seen_ids"])
+        replacement = next(
+            (item for item in matches if item["candidate"]["id"] not in seen_ids),
+            matches[0] if matches else None,
+        )
+        if replacement is not None:
+            _start_attempt(user["id"], replacement, flow["seen_ids"])
+            flash("候选状态刚刚变化，已自动继续寻找下一位真人。", "info")
+            return redirect(url_for("matches.searching"))
+        fallback = _redirect_to_ai_fallback(user["id"])
+        if fallback is not None:
+            return fallback
+        session.pop(MATCH_FLOW_SESSION_KEY, None)
+        flash("候选状态刚刚变化，请稍后重新匹配。", "info")
         return redirect(url_for("matches.index"))
     flow["phase"] = "result"
     session[MATCH_FLOW_SESSION_KEY] = flow
@@ -146,13 +201,17 @@ def search_retry():
 @login_required
 def detail(candidate_id: str):
     user = current_user()
-    match = _find_match(user["id"], candidate_id)
+    flow = _flow_for(user["id"])
+    if flow["phase"] != "result" or flow["candidate_id"] != candidate_id:
+        abort(404)
+    match = _find_match(user["id"], flow["candidate_id"])
     if match is None:
         abort(404)
-    # Candidate profile is intentionally not supplied to this template.
-    flow = _flow_for(user["id"])
-    attempt_id = flow["attempt_id"] if flow["phase"] == "result" and flow["candidate_id"] == candidate_id else None
-    return render_template("match_detail.html", match=match, attempt_id=attempt_id)
+    return render_template(
+        "match_detail.html",
+        match=_result_projection(match, flow["attempt_id"]),
+        attempt_id=flow["attempt_id"],
+    )
 
 
 @bp.post("/matches/<candidate_id>/start")
@@ -160,11 +219,11 @@ def detail(candidate_id: str):
 def start(candidate_id: str):
     user = current_user()
     flow = _flow_for(user["id"])
-    if flow["candidate_id"] != candidate_id or not _matches_attempt(flow, "result"):
+    if not _is_result_reference(flow, candidate_id) or not _matches_attempt(flow, "result"):
         flash("这次匹配结果已失效，请重新开始。", "info")
         return redirect(url_for("matches.index"))
     try:
-        conversation_id = start_direct_conversation(user["id"], candidate_id)
+        conversation_id = start_direct_conversation(user["id"], flow["candidate_id"])
     except ValidationError as error:
         flash(str(error), "error")
         return redirect(url_for("matches.index"))

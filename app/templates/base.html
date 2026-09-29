@@ -14,10 +14,12 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/match-flow.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/trust-profile.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/chat-mission-deck.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/judge-journey.css') }}">
   <script defer src="{{ url_for('static', filename='js/motion.js') }}"></script>
   <script defer src="{{ url_for('static', filename='js/chat-mission-deck.js') }}"></script>
+  <script defer src="{{ url_for('static', filename='js/registration-draft.js') }}"></script>
 </head>
-<body class="{% block body_class %}{% endblock %}" data-page="{{ request.blueprint or 'main' }}" data-endpoint="{{ request.endpoint or '' }}" data-auth="{{ 'signed-in' if current_user else 'guest' }}" data-motion-status="booting">
+<body class="{% block body_class %}{% endblock %}" data-page="{{ request.blueprint or 'main' }}" data-endpoint="{{ request.endpoint or '' }}" data-auth="{{ 'signed-in' if current_user else 'guest' }}" data-judge-stage="{% if request.endpoint in ('auth.profile', 'auth.connections') %}tags{% elif request.blueprint == 'matches' %}match{% elif request.blueprint == 'chat' %}chat{% elif request.blueprint == 'events' %}event{% else %}trust{% endif %}" data-motion-status="booting">
   <a class="skip-link" href="#main-content">跳到主要内容</a>
   <header class="site-header">
     <div class="header-inner">
@@ -41,6 +43,17 @@
   </header>
 
   <main id="main-content" class="page-shell" tabindex="-1">
+    {% if current_user %}
+      <nav class="judge-journey" aria-label="三分钟演示路径">
+        <span class="judge-journey-label">3 MIN DEMO</span>
+        <ol>
+          <li><a class="{% if request.endpoint in ('auth.profile', 'auth.connections') %}is-active{% endif %}" data-journey-step="1" href="{{ url_for('auth.profile') }}"{% if request.endpoint in ('auth.profile', 'auth.connections') %} aria-current="step"{% endif %}><span>01</span><strong>私密标签</strong></a></li>
+          <li><a class="{% if request.blueprint == 'matches' %}is-active{% endif %}" data-journey-step="2" href="{{ url_for('matches.index') }}"{% if request.blueprint == 'matches' %} aria-current="step"{% endif %}><span>02</span><strong>匿名匹配</strong></a></li>
+          <li><a class="{% if request.blueprint == 'chat' %}is-active{% endif %}" data-journey-step="3" href="{{ url_for('chat.index') }}"{% if request.blueprint == 'chat' %} aria-current="step"{% endif %}><span>03</span><strong>破冰解锁</strong></a></li>
+          <li><a class="{% if request.blueprint == 'events' %}is-active{% endif %}" data-journey-step="4" href="{{ url_for('events.index') }}"{% if request.blueprint == 'events' %} aria-current="step"{% endif %}><span>04</span><strong>餐厅饭局</strong></a></li>
+        </ol>
+      </nav>
+    {% endif %}
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         <section class="flash-stack" aria-live="polite" aria-atomic="true">
@@ -59,7 +72,7 @@
     <nav class="mobile-dock" aria-label="移动端主导航">
       <a class="mobile-dock-link{% if request.endpoint in ('auth.profile', 'auth.connections') %} is-active{% endif %}" href="{{ url_for('auth.profile') }}"{% if request.endpoint in ('auth.profile', 'auth.connections') %} aria-current="page"{% endif %}><span class="dock-key">01</span><span class="dock-label">标签</span></a>
       <a class="mobile-dock-link{% if request.blueprint == 'matches' %} is-active{% endif %}" href="{{ url_for('matches.index') }}"{% if request.blueprint == 'matches' %} aria-current="page"{% endif %}><span class="dock-key">02</span><span class="dock-label">匹配</span></a>
-      <a class="mobile-dock-link{% if request.blueprint == 'chat' %} is-active{% endif %}" href="{{ url_for('chat.index') }}"{% if request.blueprint == 'chat' %} aria-current="page"{% endif %}><span class="dock-key">03</span><span class="dock-label">会话</span></a>
+      <a class="mobile-dock-link{% if request.blueprint == 'chat' %} is-active{% endif %}" href="{{ url_for('chat.index') }}"{% if request.blueprint == 'chat' %} aria-current="page"{% endif %}><span class="dock-key">03</span><span class="dock-label">聊天</span></a>
       <a class="mobile-dock-link{% if request.blueprint == 'events' %} is-active{% endif %}" href="{{ url_for('events.index') }}"{% if request.blueprint == 'events' %} aria-current="page"{% endif %}><span class="dock-key">04</span><span class="dock-label">饭局</span></a>
     </nav>
   {% endif %}

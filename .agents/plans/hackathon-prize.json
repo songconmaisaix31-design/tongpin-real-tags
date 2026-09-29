@@ -1,0 +1,214 @@
+{
+  "schema_version": 1,
+  "objective": "Deliver a truthful, polished, judge-ready implementation of the RealTags PRD on an isolated hackathon branch without changing main",
+  "base_ref": "origin/fleet-control-hackathon-prize",
+  "waves": [
+    {
+      "id": "foundation",
+      "description": "Audit the current MVP and freeze the smallest high-value implementation contract.",
+      "depends_on": [],
+      "base": {
+        "type": "ref",
+        "value": "origin/fleet-control-hackathon-prize"
+      },
+      "tasks": [
+        {
+          "id": "ARCH-001",
+          "title": "Freeze the hackathon product, data, and acceptance contracts",
+          "track": "architecture",
+          "write_paths": [
+            "docs/specs/**",
+            "docs/contracts/DATA_SOURCE_CONTRACT.md",
+            "docs/acceptance/**"
+          ],
+          "spec": "Read the full PRD, sanitized API catalog, current Flask implementation, tests, and visual handoff. Produce an implementation specification, technical specification, data-source contract, and P0 acceptance matrix. Optimize for a reliable three-minute demo, not production completeness. Public interfaces that can safely return useful behavior data take priority; mocks are placeholders only. Freeze Duolingo and GitHub public-live mappings. Define a LeetCode public-live mapping only if a bounded read-only profile query is verified during this task; otherwise mark only its transport as verified and keep its product mapping Fixture. Keep, NetEase, WeRead, Steam, and credentialed GitHub GraphQL stay Fixture or unavailable. Separate baseline facts, current public-live evidence, Fixture behavior, and Roadmap. Treat API_INTERFACE_CATALOG.md as immutable input and do not edit application code.",
+          "acceptance": [
+            "Every P0 PRD capability is mapped to evidence, a concrete gap, or an explicit non-goal",
+            "The data contract defines normalized tags and Public Live, Fixture, unavailable, timeout, invalid-input, malformed-response, and upstream-error states",
+            "The technical spec defines exact worker boundaries, risks, acceptance tests, and a three-minute judge path",
+            "No unsupported API, deployment, score, user, or business claim is presented as fact"
+          ],
+          "checks": ["git diff --check"],
+          "agent": "codex"
+        }
+      ]
+    },
+    {
+      "id": "parallel-build",
+      "description": "Implement independent data, core, experience, and acceptance improvements from the frozen foundation SHA.",
+      "depends_on": ["ARCH-001"],
+      "base": {
+        "type": "task",
+        "task": "ARCH-001"
+      },
+      "tasks": [
+        {
+          "id": "DATA-001",
+          "title": "Connect useful public behavior APIs and retain explicit placeholders",
+          "track": "data",
+          "write_paths": [
+            "app/services/adapters.py",
+            "app/services/data_sources/**",
+            "app/config.py",
+            "app/constants.py",
+            "app/db.py",
+            "app/routes/auth.py",
+            "app/templates/connections.html",
+            "tests/test_data_sources.py",
+            "tests/fixtures/data_sources/**"
+          ],
+          "spec": "Implement the frozen data contract with Python standard-library networking only. Preserve deterministic offline fixtures, but make safe public interfaces the primary demo path: Duolingo public username plus GitHub public user, repositories, and recent events. Add LeetCode CN/COM public profile data only if the frozen contract verified the site-specific query and required response shape; otherwise expose it only as a clearly labeled Fixture or transport-verified placeholder. Validate handles, use short timeouts and response caps, map only present fields into normalized self_only tags, send no credentials, keep TLS verification, and never retry automatically. Clearly label Public Live versus Fixture in the connection UI. Keep and every unavailable source must remain visibly Fixture. Tests mock all network calls and require no internet.",
+          "acceptance": [
+            "Mocked Duolingo and GitHub public responses create truthful source-attributed tags and store no secret",
+            "Invalid handle, not found, rate limit, timeout, oversized, malformed, and upstream error cases are deterministic and tested",
+            "Offline fixtures still support the full demo and every unavailable source is labeled Fixture",
+            "The UI never asks for or renders a password, token, cookie, or authorization header",
+            "LeetCode is labeled Public Live only if its complete product mapping has current bounded evidence"
+          ],
+          "checks": [
+            ".venv\\Scripts\\python.exe -m unittest discover -s tests -p \"test_data_sources.py\" -v"
+          ],
+          "agent": "codex"
+        },
+        {
+          "id": "CORE-001",
+          "title": "Harden anonymous matching and progressive reveal",
+          "track": "core",
+          "write_paths": [
+            "app/services/matching.py",
+            "app/services/chat.py",
+            "app/services/events.py",
+            "app/services/users.py",
+            "app/services/moderation.py",
+            "app/routes/matches.py",
+            "app/routes/chat.py",
+            "app/routes/events.py",
+            "tests/test_core_contracts.py"
+          ],
+          "spec": "Use the frozen matrix and normalized data tags to adversarially audit the domain behavior. Add focused tests and only necessary fixes for reciprocal hard filters, exact weight groups and 60-98 smoothing, useful coding/learning/sport behavior signals, no hidden identity or raw-score leakage, one active match attempt, L0-to-L4 reveal controlled by each user's own consent, membership and block enforcement, restaurant-only events, 3-10 membership, and truthful transitions. Preserve server-rendered behavior and do not add realtime, payment, media, or notification features.",
+          "acceptance": [
+            "Tests cover privacy leakage, filters, fallback weights, attempt invalidation, reveal consent, blocking, and event boundaries",
+            "No page or payload exposes raw weights, raw scores, profile IDs, or unrevealed personal fields",
+            "Public and Fixture normalized tags are consumed through the same matching boundary",
+            "Any behavior change closes a documented P0 gap and existing core tests remain green"
+          ],
+          "checks": [
+            ".venv\\Scripts\\python.exe -m unittest discover -s tests -p \"test_core_contracts.py\" -v",
+            ".venv\\Scripts\\python.exe -m unittest discover -s tests -p \"test_core.py\" -v"
+          ],
+          "agent": "codex"
+        },
+        {
+          "id": "UX-001",
+          "title": "Polish the three-minute judge journey",
+          "track": "experience",
+          "write_paths": [
+            "app/templates/base.html",
+            "app/templates/home.html",
+            "app/templates/login.html",
+            "app/templates/register.html",
+            "app/templates/profile.html",
+            "app/templates/matches.html",
+            "app/templates/match_searching.html",
+            "app/templates/match_detail.html",
+            "app/templates/conversations.html",
+            "app/templates/conversation.html",
+            "app/templates/events.html",
+            "app/templates/event_detail.html",
+            "app/templates/event_form.html",
+            "app/static/**",
+            "tests/test_judge_experience.py",
+            "docs/qa/hackathon/ui/**"
+          ],
+          "spec": "Use the checked-in brand spec, visual reference, current screenshots, frozen matrix, and running app as visual truth. Polish the shortest judge path: trust promise -> demo entry -> Public Live or Fixture private tags -> anonymous percentage-only match -> L0 chat tools -> progressive reveal -> themed restaurant event. Keep the current brutalist identity, SSR, and no-JavaScript fallbacks. Fix only observable hierarchy, copy, responsive, overflow, focus, motion, and demo-orientation gaps. Do not expose hidden identity or algorithm fields. Capture representative 1100px desktop and 390x844 mobile evidence when available and document any limitation honestly.",
+          "acceptance": [
+            "A judge understands the differentiator and enters the demo from the first screen without instructions",
+            "Match, chat, reveal, and event actions remain usable at 390x844 and desktop widths",
+            "No horizontal scroll, clipped primary action, overlapped navigation, or missing focus state remains in the audited path",
+            "Focused SSR tests and existing Node match-flow tests pass",
+            "Fresh screenshot evidence or an explicit capture limitation is recorded"
+          ],
+          "checks": [
+            ".venv\\Scripts\\python.exe -m unittest discover -s tests -p \"test_judge_experience.py\" -v",
+            "node --test tests/match_flow.test.mjs"
+          ],
+          "agent": "codex"
+        },
+        {
+          "id": "QA-001",
+          "title": "Build independent acceptance and submission evidence",
+          "track": "qa",
+          "write_paths": [
+            "tests/acceptance/**",
+            "tools/hackathon_acceptance.py",
+            "submission/**",
+            "docs/qa/hackathon/acceptance/**"
+          ],
+          "spec": "Build an offline-first black-box acceptance suite from the frozen matrix. Cover the judge path plus privacy, authorization, invalid-input, Public Live failure, Fixture fallback, and side-effect boundaries. Add a deterministic dry-run entrypoint reporting PASS, FAIL, and SKIP without collapsing failure categories. Produce an English judge brief, three-minute demo script, architecture/data-flow explanation, claims ledger, runbook, evidence checklist, and limitations. Never imply live API success, deployment, users, revenue, score, or approval without evidence from this run.",
+          "acceptance": [
+            "The runner works offline with an isolated temporary database and returns nonzero on FAIL",
+            "Checks distinguish network, input, auth, route, and assertion failures",
+            "Submission claims visibly distinguish Public Live, Fixture, unavailable, and Roadmap",
+            "The runbook reproduces the demo from a clean worktree without credentials"
+          ],
+          "checks": [
+            ".venv\\Scripts\\python.exe -m unittest discover -s tests/acceptance -v",
+            ".venv\\Scripts\\python.exe tools/hackathon_acceptance.py --dry-run"
+          ],
+          "agent": "codex"
+        }
+      ]
+    },
+    {
+      "id": "integration",
+      "description": "Merge accepted exact SHAs, run complete gates, and publish a clean release candidate.",
+      "depends_on": ["ARCH-001", "DATA-001", "CORE-001", "UX-001", "QA-001"],
+      "base": {
+        "type": "task",
+        "task": "ARCH-001"
+      },
+      "tasks": [
+        {
+          "id": "INT-001",
+          "title": "Integrate and verify the hackathon release candidate",
+          "track": "integration",
+          "write_paths": [
+            ".gitignore",
+            "README.md",
+            "requirements.txt",
+            "run.py",
+            "harness.cmd",
+            "app/__init__.py",
+            "app/routes/main.py",
+            "app/routes/admin.py",
+            "app/templates/admin_dashboard.html",
+            "app/templates/admin_event_review.html",
+            "app/templates/admin_login.html",
+            "app/templates/admin_report_review.html",
+            "tests/test_e2e_harness.py",
+            "tools/harness_cli.py",
+            "docs/qa/hackathon/integration/**"
+          ],
+          "spec": "Start from the published governance base containing accepted ARCH-001 and all recorded governance amendments. Fetch and merge each accepted DATA-001, CORE-001, UX-001, and QA-001 exact remote SHA using clean two-parent --no-ff merges. Abort and escalate on conflicts instead of editing another track. Make only minimal integration-owned adjustments needed for the runbook and acceptance gate, including updating the legacy E2E authorization expectation and making harness.cmd prefer the worktree .venv interpreter when present. Rerun the strict assembly acceptance gate and write final integrated claims, gate receipts, and stable 1100x900/390x844 screenshots under docs/qa/hackathon/integration/**; do not rewrite worker-scoped evidence or reuse isolated screenshots as final evidence. Run a bounded credential-free Public Live smoke only when the network is reachable and record sanitized states without raw profiles. Run syntax, all Python tests, acceptance tests, Node tests, the HTTP harness, diff checks, and visual smoke checks. Verify demo mode plus DEMO_MODE=0 startup without reading secrets. Update the root README to point judges to the final integrated evidence, commit and push a clean candidate, and never modify or merge into main.",
+          "acceptance": [
+            "All accepted worker SHAs are exact second parents of clean no-ff merge commits",
+            "Python, acceptance, Node, syntax, HTTP workflow, and diff gates pass from a clean worktree",
+            "README and submission materials label Public Live, Fixture, unavailable, and Roadmap truthfully",
+            "The pushed candidate is clean and contains no credentials or local database",
+            "main remains unchanged"
+          ],
+          "checks": [
+            ".venv\\Scripts\\python.exe -m compileall -q app tools",
+            ".venv\\Scripts\\python.exe -m unittest discover -s tests -v",
+            ".venv\\Scripts\\python.exe -m unittest discover -s tests/acceptance -v",
+            ".venv\\Scripts\\python.exe tools/hackathon_acceptance.py --require-assembly",
+            "node --test tests/match_flow.test.mjs",
+            "harness.cmd --no-color",
+            "git diff --check"
+          ],
+          "agent": "codex"
+        }
+      ]
+    }
+  ]
+}

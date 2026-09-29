@@ -13,11 +13,12 @@
       <h1 id="match-result-title">这是一位值得聊聊的陌生人</h1>
       <p class="result-lede">你们有 {{ match.common_point_count }} 个隐藏共同点。开始聊天后，完成互动任务可逐个解锁。</p>
       <div class="unknown-points large-points" aria-label="{{ match.common_point_count }} 个待解锁匹配点">{% for _ in range(match.common_point_count) %}<span aria-hidden="true">?</span>{% endfor %}</div>
+      <p class="result-next-step"><strong>NEXT / L0 CHAT TOOLS</strong><span>进入后仍保持匿名，可先摇骰子或抽任务卡破冰。</span></p>
       <div class="match-result-actions">
         {% if attempt_id %}
           <form method="post" action="{{ url_for('matches.start', candidate_id=match.candidate.id) }}">
             <input type="hidden" name="attempt_id" value="{{ attempt_id }}">
-            <button class="button button-large" type="submit">开启匿名会话</button>
+            <button class="button button-large" data-primary-action type="submit">开启匿名会话 · 进入 L0</button>
           </form>
           <form method="post" action="{{ url_for('matches.search_retry') }}">
             <input type="hidden" name="attempt_id" value="{{ attempt_id }}">

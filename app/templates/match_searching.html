@@ -36,7 +36,7 @@
           </li>
           <li data-match-step="ranking">
             <span class="match-step-number">03</span>
-            <div><strong>生成匿名结果</strong><p>服务端加权排序，并把展示分平滑到体验区间。</p></div>
+            <div><strong>生成匿名结果</strong><p>服务端完成排序，只返回百分比与隐藏共同点数量。</p></div>
             <span class="match-step-status">等待</span>
           </li>
         </ol>
@@ -47,7 +47,7 @@
     <div class="match-search-actions">
       <form method="post" action="{{ url_for('matches.search_complete') }}" data-match-complete>
         <input type="hidden" name="attempt_id" value="{{ attempt_id }}">
-        <button class="text-link match-skip-button" type="submit">跳过等待，直接查看结果</button>
+        <button class="text-link match-skip-button" data-primary-action type="submit">跳过等待，直接查看结果</button>
         <noscript><p>浏览器未启用 JavaScript，你仍然可以使用上面的按钮完成匹配。</p></noscript>
       </form>
       <form method="post" action="{{ url_for('matches.search_cancel') }}" data-match-cancel>

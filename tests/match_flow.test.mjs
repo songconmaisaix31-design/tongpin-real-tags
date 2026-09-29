@@ -3,7 +3,7 @@ import test from "node:test";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
-const { createMatchTimeline } = require("../app/static/js/match-flow.js");
+const { createMatchTimeline, submitMatchCompletion } = require("../app/static/js/match-flow.js");
 
 const fakeScheduler = () => {
   const tasks = [];
@@ -90,4 +90,28 @@ test("restart invalidates the old generation and only the new run completes", ()
   oldTasks.forEach((task) => task.callback());
   scheduler.runAll();
   assert.deepEqual(events, ["filter", "similarity", "ranking", "complete"]);
+});
+
+test("completion uses requestSubmit when the modern form API is available", () => {
+  const calls = [];
+  const submitted = submitMatchCompletion({
+    requestSubmit: () => calls.push("requestSubmit"),
+    submit: () => calls.push("submit")
+  });
+
+  assert.equal(submitted, true);
+  assert.deepEqual(calls, ["requestSubmit"]);
+});
+
+test("completion falls back to native submit in legacy WebViews", () => {
+  const calls = [];
+  const submitted = submitMatchCompletion({ submit: () => calls.push("submit") });
+
+  assert.equal(submitted, true);
+  assert.deepEqual(calls, ["submit"]);
+});
+
+test("completion fails closed when no form can be submitted", () => {
+  assert.equal(submitMatchCompletion(null), false);
+  assert.equal(submitMatchCompletion({}), false);
 });

@@ -11,7 +11,7 @@ from flask import abort, current_app, flash, redirect, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from ..constants import CITIES, GENDERS, INTERESTS, MATCH_GENDERS, MBTIS, PURPOSES, SCHEDULES, ZODIACS
-from ..db import get_db, utcnow
+from ..db import get_db, is_integrity_error, utcnow
 
 
 class ValidationError(ValueError):
@@ -125,15 +125,33 @@ def create_user(form) -> str:
         )
         get_db().commit()
     except Exception as error:
-        if "UNIQUE constraint failed: users.email" in str(error):
+        if is_integrity_error(error) and "users.email" in str(error):
             raise ValidationError("该邮箱已注册。") from error
         raise
     return user_id
 
 
 def profile_tags(user_id: str) -> list[dict]:
+    columns = {row["name"] for row in get_db().execute("PRAGMA table_info(tags)").fetchall()}
+    optional_columns = (
+        "data_mode",
+        "evidence_kind",
+        "identity_assurance",
+        "mapping_version",
+    )
+    selected_columns = [
+        "tag_id",
+        "category",
+        "name",
+        "value_json",
+        "source",
+        "verified",
+        "visibility",
+        "updated_at",
+        *(column for column in optional_columns if column in columns),
+    ]
     rows = get_db().execute(
-        "SELECT tag_id, category, name, value_json, source, verified, visibility, updated_at FROM tags WHERE user_id = ? ORDER BY category, id",
+        f"SELECT {', '.join(selected_columns)} FROM tags WHERE user_id = ? ORDER BY category, id",
         (user_id,),
     ).fetchall()
     tags = []
@@ -141,8 +159,53 @@ def profile_tags(user_id: str) -> list[dict]:
         tag = dict(row)
         tag["value"] = json.loads(tag.pop("value_json"))
         tag["verified"] = bool(tag["verified"])
+        tag.setdefault("data_mode", "fixture")
+        tag.setdefault("evidence_kind", "direct")
+        tag.setdefault("identity_assurance", "synthetic_fixture")
+        tag.setdefault("mapping_version", "legacy-fixture-v1")
+        tag["observed_at"] = tag["updated_at"] if tag["data_mode"] == "public_live" else None
         tags.append(tag)
     return tags
+
+
+def matching_tags(user_id: str) -> list[dict]:
+    """Project eligible tags to the identity-free matching contract."""
+    db = get_db()
+    columns = {row["name"] for row in db.execute("PRAGMA table_info(tags)").fetchall()}
+    has_data_mode = "data_mode" in columns
+    selected = "tag_id, value_json, verified, visibility"
+    if has_data_mode:
+        selected += ", data_mode"
+    rows = db.execute(
+        f"SELECT {selected} FROM tags WHERE user_id = ? ORDER BY id",
+        (user_id,),
+    ).fetchall()
+    projected: dict[str, dict] = {}
+    for row in rows:
+        mode = row["data_mode"] if has_data_mode else "fixture"
+        if row["visibility"] != "self_only":
+            continue
+        if mode == "public_live":
+            if not row["verified"]:
+                continue
+        elif mode == "fixture":
+            if not current_app.config.get("DEMO_MODE", False):
+                continue
+            # Legacy Fixture rows predate data_mode and were incorrectly marked verified.
+            if has_data_mode and row["verified"]:
+                continue
+        else:
+            continue
+        if not re.fullmatch(r"[a-z][a-z0-9_]*", row["tag_id"]):
+            continue
+        try:
+            value = json.loads(row["value_json"])
+        except (TypeError, json.JSONDecodeError):
+            continue
+        if not isinstance(value, dict):
+            continue
+        projected[row["tag_id"]] = {"tag_id": row["tag_id"], "value": value}
+    return list(projected.values())
 
 
 def source_connections(user_id: str) -> dict[str, dict]:

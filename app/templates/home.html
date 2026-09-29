@@ -6,20 +6,30 @@
     <div class="hero-copy">
       <p class="eyebrow">真实行为数据 / 匿名匹配 / 兴趣饭局</p>
       <h1 id="home-title">先聊同频，<span>再决定要不要认识。</span></h1>
-      <p class="hero-lede">连接多邻国和 Keep 的行为数据，由服务端计算同频程度。匹配阶段只展示必要信号，身份信息随双方互动逐步解锁。</p>
-      <div class="action-row">
+      {% if demo_mode %}
+        <p class="hero-lede">连接可公开读取的行为资料，或使用明确标注的离线 Fixture。服务端生成仅自己可见的行为标签；匹配阶段只展示百分比，身份信息随双方互动逐步解锁。</p>
+      {% else %}
+        <p class="hero-lede">连接可公开读取的行为资料。服务端生成仅自己可见的行为标签；匹配阶段只展示百分比，身份信息随双方互动逐步解锁。</p>
+      {% endif %}
+      <div class="action-row judge-entry-actions">
         {% if user %}
-          <a class="button" href="{{ url_for('matches.index') }}">开始一次匿名匹配</a>
+          <a class="button" data-primary-action href="{{ url_for('matches.index') }}">开始一次匿名匹配</a>
           <a class="button secondary" href="{{ url_for('events.index') }}">逛兴趣饭局</a>
         {% else %}
-          {% if demo_mode %}<form class="inline-form" method="post" action="{{ url_for('auth.demo_login') }}"><button class="button" type="submit">进入预置演示账号</button></form>{% endif %}
+          {% if demo_mode %}
+            <form class="demo-entry" data-judge-entry method="post" action="{{ url_for('auth.demo_login') }}" aria-describedby="demo-entry-note">
+              <span class="demo-entry-label">3 MINUTE JUDGE PATH · RESETTABLE FIXTURE</span>
+              <button class="button" data-primary-action type="submit"><strong>进入预置演示账号</strong><small>私密标签 → 匿名匹配 → 破冰解锁 → 餐厅饭局</small></button>
+              <p id="demo-entry-note">无需外部账号或现场配置；Fixture 会明确标注，不冒充实时授权。</p>
+            </form>
+          {% endif %}
           <a class="button secondary" href="{{ url_for('auth.register') }}">注册新账号</a>
         {% endif %}
       </div>
       <ul class="trust-line" aria-label="产品安全原则">
-        <li>不展示照片</li>
-        <li>不公开原始数据</li>
-        <li>不允许私宅饭局</li>
+        <li>标签仅本人可见</li>
+        <li>匹配只展示百分比</li>
+        <li>饭局只限公开餐厅</li>
       </ul>
     </div>
     <aside class="protocol-panel" aria-label="匿名匹配展示协议">

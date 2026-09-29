@@ -5,8 +5,12 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/nearby-events.css') }}">
   {% set budget_labels = {'under_50':'50 以下','50-100':'50–100','100-200':'100–200','200_plus':'200+'} %}
   <section class="page-heading event-heading" aria-labelledby="events-title">
-    <div><p class="eyebrow">3–10 PEOPLE / VERIFIED RESTAURANTS</p><h1 id="events-title">饭局广场</h1><p>浏览阶段只显示饭局信息、聚合人数与匹配度；成员身份始终保持匿名。</p></div>
-    <a class="button button-large" href="{{ url_for('events.create') }}">发起饭局</a>
+    <div><p class="eyebrow">STEP 04 / 3–10 PEOPLE / PUBLIC RESTAURANTS</p><h1 id="events-title">把同频带到一张餐桌。</h1><p>浏览阶段只显示主题、公开餐厅、聚合人数与匹配度；成员身份始终保持匿名。</p></div>
+    {% if current_user.phone_verified %}
+      <a class="button button-large" data-primary-action href="{{ url_for('events.create') }}">发起主题饭局</a>
+    {% else %}
+      <span class="status-pill status-neutral">发起需手机号验证</span>
+    {% endif %}
   </section>
 
   <section class="nearby-panel" aria-labelledby="nearby-title" data-nearby-active="{{ 'true' if nearby.active else 'false' }}">
@@ -61,7 +65,7 @@
       <article class="event-row">
         <div class="event-order"><span>{{ '%02d'|format(loop.index) }}</span><small>{{ 'MERCHANT' if event.is_merchant else 'COMMUNITY' }}</small></div>
         <div class="event-main">
-          <div class="event-status-line"><span class="status-pill {{ 'status-signal' if event.is_merchant else 'status-neutral' }}">{{ '商家饭局' if event.is_merchant else '用户发起' }}</span><span>{{ event.status_label }}</span></div>
+          <div class="event-status-line"><span class="status-pill {{ 'status-signal' if event.is_merchant else 'status-neutral' }}">{{ '商家饭局 · Fixture' if event.is_merchant else '用户发起' }}</span><span>{{ event.status_label }}</span></div>
           <h2>{{ event.title }}</h2>
           <p class="event-place"><strong>{{ event.start_at_display }}</strong><span>{{ event.poi_name }}</span></p>
           <dl class="event-meta"><div><dt>预算</dt><dd>{{ budget_labels[event.budget_level] }}</dd></div><div><dt>人数</dt><dd>{{ event.approved_count }}/{{ event.max_size }} 人</dd></div><div><dt>构成</dt><dd>男 {{ event.gender_counts.male }} / 女 {{ event.gender_counts.female }} / 未透露 {{ event.gender_counts.undisclosed }}</dd></div></dl>
@@ -70,7 +74,7 @@
         <div class="event-action"><div class="event-score" aria-label="与你的匹配度 {{ event.display_score }}%"><strong>{{ event.display_score }}</strong><span>%</span><small>与你的匹配度</small></div><a class="button secondary" href="{{ url_for('events.detail', event_id=event.id) }}" aria-label="查看饭局：{{ event.title }}">查看饭局</a></div>
       </article>
     {% else %}
-      <div class="empty-state"><span>NO EVENTS FOUND</span><h2>没有符合筛选条件的饭局</h2><p>{% if nearby.active %}试试扩大附近半径、关闭定位，或清除其他筛选条件。{% else %}清除筛选看看全部活动，或发起一场符合你节奏的兴趣饭局。{% endif %}</p><div class="action-row"><a class="button" href="{{ url_for('events.create') }}">发起饭局</a><a class="text-link" href="{{ url_for('events.index') }}">清除筛选</a></div></div>
+      <div class="empty-state"><span>NO EVENTS FOUND</span><h2>没有符合筛选条件的饭局</h2><p>{% if nearby.active %}试试扩大附近半径、关闭定位，或清除其他筛选条件。{% elif current_user.phone_verified %}清除筛选看看全部活动，或发起一场符合你节奏的兴趣饭局。{% else %}当前可以浏览公开饭局；接入真实手机号验证后才能发起线下活动。{% endif %}</p><div class="action-row">{% if current_user.phone_verified %}<a class="button" href="{{ url_for('events.create') }}">发起饭局</a>{% endif %}<a class="text-link" href="{{ url_for('events.index') }}">清除筛选</a></div></div>
     {% endfor %}
   </section>
 {% endblock %}
