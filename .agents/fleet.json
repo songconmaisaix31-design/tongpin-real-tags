@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "project": "xxx",
+  "repo_selector": "id:15b0721e-5834-4702-a6f0-5155ebf31346",
+  "base_ref": "origin/main",
+  "fetch_before_launch": true,
+  "coordinator": {
+    "agent": "codex",
+    "setup": "run",
+    "worktree_prefix": "fleet-control"
+  },
+  "worker_defaults": {
+    "agent": "codex",
+    "setup": "run",
+    "worktree_mode": "new-top-level"
+  },
+  "branch_rules": {
+    "track_pattern": "^trk-(?P<track>[a-z0-9_]+)-(?P<task>[a-z0-9-]+)$",
+    "control_pattern": "^fleet-control(?:-|$)",
+    "base_branches": [
+      "main",
+      "master",
+      "develop"
+    ]
+  },
+  "global_forbidden": [
+    ".git/**",
+    ".env",
+    ".env.local",
+    ".env.production",
+    "**/*.pem",
+    "**/*.key",
+    "**/*credential*",
+    "*.pem",
+    "*.key",
+    "**/.env",
+    "**/.env.local",
+    "**/.env.production"
+  ],
+  "tracks": {
+    "control": {
+      "description": "总控计划、运行状态、决策和跨轨交接；不写业务代码",
+      "allow": [
+        ".agents/plans/**",
+        ".agents/runs/**",
+        ".agents/decisions/**",
+        ".agents/handoffs/**"
+      ],
+      "checks": []
+    },
+    "architecture": {
+      "description": "公共契约、Schema、ABI 和架构基线",
+      "allow": [
+        "contracts/**"
+      ],
+      "checks": []
+    },
+    "web": {
+      "description": "前端应用与 UI 组件",
+      "allow": [
+        "apps/web/**",
+        "packages/ui/**"
+      ],
+      "checks": []
+    },
+    "api": {
+      "description": "后端 API 与服务实现",
+      "allow": [
+        "services/api/**"
+      ],
+      "checks": []
+    },
+    "qa": {
+      "description": "端到端测试、Fixture 与验收脚本",
+      "allow": [
+        "tests/e2e/**",
+        "fixtures/**"
+      ],
+      "checks": []
+    },
+    "integration": {
+      "description": "唯一集成者：组装层、共享根文件、发布与部署",
+      "allow": [
+        "apps/demo-shell/**",
+        "deploy/**",
+        "README.md",
+        "package.json",
+        "pnpm-workspace.yaml",
+        "pnpm-lock.yaml",
+        "package-lock.json",
+        "yarn.lock",
+        "docker-compose.yml"
+      ],
+      "checks": []
+    },
+    "automation": {
+      "description": "多 Agent 控制面、脚本、Hook 和 CI",
+      "allow": [
+        "scripts/**",
+        ".githooks/**",
+        ".github/**",
+        ".agents/fleet.json",
+        ".agents/prompts/**",
+        "AGENTS.md",
+        "PRINCIPLES.md",
+        "orca.yaml"
+      ],
+      "checks": [
+        "python -B -m unittest discover -s scripts/tests -v"
+      ]
+    }
+  }
+}

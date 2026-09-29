@@ -1,0 +1,3 @@
+scripts:
+  setup: |
+    python scripts/install_hooks.py

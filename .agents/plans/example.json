@@ -1,0 +1,138 @@
+{
+  "schema_version": 1,
+  "objective": "实现一个可演示、可测试的项目风险详情流程",
+  "base_ref": "origin/main",
+  "waves": [
+    {
+      "id": "foundation",
+      "description": "先冻结公共契约，产出新的执行基线",
+      "depends_on": [],
+      "base": {
+        "type": "ref",
+        "value": "origin/main"
+      },
+      "tasks": [
+        {
+          "id": "ARCH-001",
+          "title": "冻结风险详情契约",
+          "track": "architecture",
+          "write_paths": [
+            "contracts/**"
+          ],
+          "spec": "定义风险详情 API、错误码、JSON Schema 和离线 Fixture 契约；不要实现前后端业务代码。",
+          "acceptance": [
+            "契约机器可读",
+            "字段、错误码和空值语义明确",
+            "提供成功与失败样例"
+          ],
+          "checks": [],
+          "agent": "codex"
+        }
+      ]
+    },
+    {
+      "id": "parallel-build",
+      "description": "所有 Worker 从 ARCH-001 的远端 SHA 出发并行开发",
+      "depends_on": [
+        "ARCH-001"
+      ],
+      "base": {
+        "type": "task",
+        "task": "ARCH-001"
+      },
+      "tasks": [
+        {
+          "id": "WEB-001",
+          "title": "实现风险详情前端",
+          "track": "web",
+          "write_paths": [
+            "apps/web/**",
+            "packages/ui/**"
+          ],
+          "spec": "严格消费冻结契约，使用 Fixture 完成详情、加载、空状态和错误状态。",
+          "acceptance": [
+            "Fixture 模式可独立运行",
+            "关键交互具备测试",
+            "不修改 API 与契约目录"
+          ],
+          "checks": [],
+          "agent": "codex"
+        },
+        {
+          "id": "API-001",
+          "title": "实现风险详情 API",
+          "track": "api",
+          "write_paths": [
+            "services/api/**"
+          ],
+          "spec": "严格按照冻结契约实现接口、错误映射和测试数据适配。",
+          "acceptance": [
+            "响应符合 Schema",
+            "错误路径可验证",
+            "不修改契约文件"
+          ],
+          "checks": [],
+          "agent": "codex"
+        },
+        {
+          "id": "QA-001",
+          "title": "编写黄金路径 E2E",
+          "track": "qa",
+          "write_paths": [
+            "tests/e2e/**",
+            "fixtures/**"
+          ],
+          "spec": "根据冻结契约编写离线黄金路径、错误路径和演示验收脚本，不直接修业务实现。",
+          "acceptance": [
+            "成功与失败路径均被覆盖",
+            "失败报告指出责任轨道",
+            "不修改 Web 或 API 目录"
+          ],
+          "checks": [],
+          "agent": "codex"
+        }
+      ]
+    },
+    {
+      "id": "integration",
+      "description": "唯一集成轨合并并验证全部轨道",
+      "depends_on": [
+        "ARCH-001",
+        "WEB-001",
+        "API-001",
+        "QA-001"
+      ],
+      "base": {
+        "type": "task",
+        "task": "ARCH-001"
+      },
+      "tasks": [
+        {
+          "id": "INT-001",
+          "title": "组装、全量验证并生成发布候选",
+          "track": "integration",
+          "write_paths": [
+            "apps/demo-shell/**",
+            "deploy/**",
+            "README.md",
+            "package.json",
+            "pnpm-workspace.yaml",
+            "pnpm-lock.yaml",
+            "package-lock.json",
+            "yarn.lock",
+            "docker-compose.yml"
+          ],
+          "spec": "从冻结契约基线建立集成分支，对每个已验收依赖 SHA 执行干净的双亲 no-ff merge；任何冲突都中止并退回责任轨。只在 integration 所有路径做独立适配提交。",
+          "acceptance": [
+            "离线黄金路径通过",
+            "全量构建测试通过",
+            "保留非 squash 历史",
+            "产出发布候选 SHA"
+          ],
+          "checks": [],
+          "agent": "codex"
+        }
+      ]
+    }
+  ]
+}
