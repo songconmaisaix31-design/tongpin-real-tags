@@ -1,0 +1,11 @@
+# 凭证文件 —— 绝对不要提交
+credentials.json
+.env
+*.cookie
+*.session
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
