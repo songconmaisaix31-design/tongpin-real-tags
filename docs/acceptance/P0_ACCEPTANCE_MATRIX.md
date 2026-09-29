@@ -5,7 +5,7 @@
 | Item | Value |
 |---|---|
 | Frozen base | `e7e4ee78826f213109955d345ed51a05839e4c0f` |
-| Product authority | [`../../产品需求文档_PRD.md`](../../产品需求文档_PRD.md) |
+| Product authority | [`../../产品需求文档_PRD.md`](../product/PRD.md) |
 | Implementation specification | [`../specs/IMPLEMENTATION_SPEC.md`](../specs/IMPLEMENTATION_SPEC.md) |
 | Technical specification | [`../specs/TECHNICAL_SPEC.md`](../specs/TECHNICAL_SPEC.md) |
 | Data contract | [`../contracts/DATA_SOURCE_CONTRACT.md`](../contracts/DATA_SOURCE_CONTRACT.md) |

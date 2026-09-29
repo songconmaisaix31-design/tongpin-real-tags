@@ -8,7 +8,7 @@
 | Logical task | `ARCH-001` |
 | Frozen base | `e7e4ee78826f213109955d345ed51a05839e4c0f` |
 | Date | 2026-08-23 |
-| Product authority | [`../../产品需求文档_PRD.md`](../../产品需求文档_PRD.md) |
+| Product authority | [`../../产品需求文档_PRD.md`](../product/PRD.md) |
 | External API evidence | [`../contracts/API_INTERFACE_CATALOG.md`](../contracts/API_INTERFACE_CATALOG.md) (immutable input) |
 | Normative data contract | [`../contracts/DATA_SOURCE_CONTRACT.md`](../contracts/DATA_SOURCE_CONTRACT.md) |
 | P0 gate | [`../acceptance/P0_ACCEPTANCE_MATRIX.md`](../acceptance/P0_ACCEPTANCE_MATRIX.md) |
@@ -70,8 +70,8 @@ At the frozen base, the repository contains:
   anonymous signup review, deadline settlement, group creation, Fixture
   merchant benefits, and manual redemption; and
 - the checked-in responsive visual system and representative desktop/mobile
-  screenshots described by [`../FRONTEND_HANDOFF.md`](../FRONTEND_HANDOFF.md)
-  and [`../../brand-spec.md`](../../brand-spec.md).
+  screenshots described by [`../FRONTEND_HANDOFF.md`](../design/FRONTEND_HANDOFF.md)
+  and [`../../brand-spec.md`](../brand/BRAND_SPEC.md).
 
 The isolated local Harness was run with the existing virtual environment on
 2026-08-23. All 6 pipeline stages passed: runtime preflight, syntax, 4 match

@@ -13,8 +13,8 @@
 | Provenance split | 34 archive-defined contracts; 3 workspace supplements (`duolingo.users`, LeetCode CN GraphQL, LeetCode COM GraphQL) |
 | Credentials used | No |
 | Raw response bodies stored | No |
-| Primary evidence | [`reports/api-interface-validation-2026-08-22.json`](reports/api-interface-validation-2026-08-22.json) |
-| Human-readable evidence | [`reports/api-interface-validation-2026-08-22.md`](reports/api-interface-validation-2026-08-22.md) |
+| Primary evidence | [`reports/api-interface-validation-2026-08-22.json`](../../reports/api-interface-validation-2026-08-22.json) |
+| Human-readable evidence | [`reports/api-interface-validation-2026-08-22.md`](../../reports/api-interface-validation-2026-08-22.md) |
 
 The archive itself defines 34 concrete external contracts: Keep 5, Steam 7,
 GitHub 4, NetEase 9, and WeRead 9. It names Duolingo and LeetCode capabilities
@@ -112,7 +112,7 @@ API report exists yet, so no personal-data interface is marked available.
 | `keep.cycling_log` | Read one cycling activity detail. `GET https://api.gotokeep.com/pd/v3/cyclinglog/{ride_id}` | Path: a real `ride_id`. Auth: bearer token. Expected response: one ride's detail; it may contain sensitive route and health data. | Probe: `GET` with synthetic ID `0`. `RESOURCE_NOT_FOUND`; HTTP 404; 29 ms. Functionally verified: **No**. The result does not prove the route is absent; a valid privacy-safe test resource is required. Source: `Keep_API_Integration_Example.py:28,172-190`. |
 
 Authenticated aggregate testing, if resumed, must use
-[`keep_authenticated_probe.py`](keep_authenticated_probe.py). It accepts a
+[`keep_authenticated_probe.py`](../../keep_authenticated_probe.py). It accepts a
 temporary bearer token only through hidden TTY input and writes no personal
 response fields. Its 20 offline security tests passed, but live authenticated
 evidence remains pending.

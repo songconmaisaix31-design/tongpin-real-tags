@@ -89,4 +89,3 @@ python -m unittest tests.test_endpoint_probe -v
 python -m py_compile endpoint_probe.py tests/test_endpoint_probe.py
 python endpoint_probe.py --json reports/api-interface-validation-2026-08-22.json --markdown reports/api-interface-validation-2026-08-22.md
 ```
-
