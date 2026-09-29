@@ -12,3 +12,10 @@ instance/
 !.env.example
 .DS_Store
 Thumbs.db
+# 凭证文件 —— 绝对不要提交
+credentials.json
+*.cookie
+*.session
+
+# Python
+venv/
